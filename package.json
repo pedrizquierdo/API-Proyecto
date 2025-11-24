@@ -1,8 +1,30 @@
 {
   "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0",
-    "mysql2": "^3.15.3"
-  }
+    "bcryptjs": "3.0.3",
+    "cookie-parser": "1.4.7",
+    "dotenv": "17.2.3",
+    "express": "5.1.0",
+    "jsonwebtoken": "9.0.2",
+    "mysql2": "3.15.3"
+  },
+  "name": "api-proyecto",
+  "version": "1.0.0",
+  "description": "Es una API RESTful desarrollada con Node.js y Express para gestionar usuarios y juegos. Utiliza una base de datos MySQL para almacenar la información y bcryptjs para el hash de contraseñas, asegurando la seguridad de los datos de los usuarios.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js"
+  },
+  "keywords": [
+    "API",
+    "RESTful",
+    "Node.js",
+    "Express",
+    "MySQL",
+    "bcryptjs"
+  ],
+  "author": "Pedro Izquierdo",
+  "license": "ISC",
+  "type": "module"
 }
