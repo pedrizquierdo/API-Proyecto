@@ -2,6 +2,7 @@ import { getUserByEmail, createUser } from "../users/user.model.js";
 import { generateToken, generateRefreshToken } from "../../utils/jwt.js";
 import { hashPassword, comparePassword } from "../../utils/hash.js";
 import { errorHandlerController } from "../../helpers/errorHandlerController.js";
+import { cookieOptions, clearOptions } from "../../config/cookies.js";
 
 
 
@@ -44,15 +45,11 @@ const loginController = async (req, res) => {
         const token = generateToken(user);
         const refreshToken = generateRefreshToken(user);
         res.cookie("token", token, {
-            httpOnly: true,
-            secure: true,
-            sameSite: "none",
+            ...cookieOptions,
             maxAge: 15 * 60 * 1000 // 15 minutos
         });
         res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: "none",
+            ...cookieOptions,
             maxAge: 30 * 24 * 60 * 60 * 1000 // 30 días
         });
         res.json({message: "Inicio de sesión exitoso"});
@@ -62,8 +59,8 @@ const loginController = async (req, res) => {
 };  
 
 const logoutController = async (req, res) => {
-    res.clearCookie("token");
-    res.clearCookie("refreshToken");
+    res.clearCookie("token", clearOptions);
+    res.clearCookie("refreshToken", clearOptions);
     res.json({message: "Cierre de sesión exitoso"});
 };
 
@@ -72,10 +69,8 @@ const refreshController = async (req, res) => {
         const user = req.user;
         const newToken = generateToken({ id_user: user.id_user });
         
-        res.cookie("token", newToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: "none",
+        res.cookie("token", newToken,   {
+            ...cookieOptions,
             maxAge: 15 * 60 * 1000 // 15 minutos
         });
         res.json({message: "Token renovado exitosamente"});

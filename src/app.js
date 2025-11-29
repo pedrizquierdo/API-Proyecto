@@ -1,6 +1,8 @@
 import express from "express";
 import pool from "./config/db.js";
 import dotenv from "dotenv";
+import userRoutes from "./modules/users/user.routes.js";
+import gameRoutes from "./modules/games/game.routes.js";
 
 
 dotenv.config();
@@ -18,6 +20,9 @@ app.get("/", async (req, res) => {
     res.status(500).send("Error en la base de datos");
   }
 });
+
+app.use(userRoutes);
+app.use(gameRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);
