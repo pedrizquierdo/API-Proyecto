@@ -2,14 +2,11 @@ import { errorHandlerController } from "../../helpers/errorHandlerController.js"
 import GamesModel from './game.model.js';
 import igdbService from '../../services/igdb.service.js';
 
-// 1. Obtener juegos en tendencia (Para Landing Page y Onboarding)
 const getTrending = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 10;
-        // 1. Intentar obtener tendencias cacheadas de la DB Local
         let trending = await GamesModel.getTrendingGames(limit);
 
-        // 2. Si la DB está vacía o los datos son viejos (Cold Start Strategy)
         if (trending.length < limit) {
             console.log(`Cache local insuficiente (${trending.length}/${limit}). Consultando IGDB...`);
             
@@ -30,7 +27,6 @@ const getTrending = async (req, res) => {
     }
 };
 
-// 2. Búsqueda Inteligente (El núcleo de tu app)
 const search = async (req, res) => {
     const { q } = req.query; // Obtiene ?q=zelda
 
@@ -67,7 +63,6 @@ const search = async (req, res) => {
     }
 };
 
-// 3. Obtener detalle de un juego (Por ID local)
 const getById = async (req, res) => {
     const { id } = req.params;
 
@@ -84,7 +79,7 @@ const getById = async (req, res) => {
     }
 };
 
-// 4. Obtener detalle por Slug (Para URLs bonitas)
+
 const getBySlug = async (req, res) => {
     const { slug } = req.params;
     try {
