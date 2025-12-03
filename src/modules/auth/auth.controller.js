@@ -17,7 +17,7 @@ const registerController = async (req, res) => {
             return errorHandlerController("El email ya existe", 400, res);
         }
         const password_hash = await hashPassword(password);  
-        const id = await createUser({name, email, password: password_hash});
+        const id = await createUser({username, email, password: password_hash});
         res.status(201).json({message: "Usuario creado exitosamente", id}); 
     } catch (error) {
         return errorHandlerController("Error al registrar el usuario", 500, res, error);
