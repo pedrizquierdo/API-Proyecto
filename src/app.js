@@ -2,7 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cookie from "cookie-parser";
 import cors from "cors";
-import { corsOptions } from "./config/corsOptions.js";
+import { corsOptions } from "./config/cors.js";
 import rateLimit from "express-rate-limit";
 
 import authRoutes from "./modules/auth/auth.routes.js";
