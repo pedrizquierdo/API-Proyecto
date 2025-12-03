@@ -1,4 +1,9 @@
-import ActivityModel from './activity.model.js';
+import {
+    upsertActivity,
+    getActivityByGame,
+    getWatchlist,
+    deleteActivity
+} from './activity.model.js';
 
 // Body esperado: { gameId: 10, status: 'played', rating: 4.5, isFavorite: true }
 const logActivity = async (req, res) => {
@@ -16,7 +21,7 @@ const logActivity = async (req, res) => {
             return res.status(400).json({ message: "Estado inválido" });
         }
 
-        await ActivityModel.upsertActivity(userId, gameId, {
+        await upsertActivity(userId, gameId, {
             status,
             rating,
             is_favorite: isFavorite
@@ -33,7 +38,7 @@ const logActivity = async (req, res) => {
 const getMyWatchlist = async (req, res) => {
     try {
         const userId = req.user.id_user;
-        const games = await ActivityModel.getWatchlist(userId);
+        const games = await getWatchlist(userId);
         res.json(games);
     } catch (error) {
         res.status(500).json({ message: "Error obteniendo watchlist" });
@@ -45,7 +50,7 @@ const checkStatus = async (req, res) => {
         const userId = req.user.id_user;
         const { gameId } = req.params;
         
-        const activity = await ActivityModel.getActivityByGame(userId, gameId);
+        const activity = await getActivityByGame(userId, gameId);
         
         // Si no hay actividad, devolvemos null o un objeto vacío seguro
         res.json(activity || { status: null, is_favorite: false, rating: null });
