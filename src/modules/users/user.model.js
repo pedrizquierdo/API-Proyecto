@@ -2,7 +2,7 @@ import pool from "../../config/db.js";
 
 const getUserByEmail = async (email) => {
     const [rows] = await pool.query(
-        "SELECT id_user, username, email, password, role FROM users WHERE email = ?", 
+        "SELECT id_user, username, email, password_hash as password, role FROM users WHERE email = ?", 
         [email]
     );
     return rows[0];
@@ -10,7 +10,7 @@ const getUserByEmail = async (email) => {
 
 const createUser = async (user) => {
     const [result] = await pool.query(
-        "INSERT INTO users (username, email, password) VALUES (?, ?, ?)", 
+        "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)", 
         [user.username, user.email, user.password]
     );
     return result.insertId;
