@@ -1,4 +1,4 @@
-import { getUserByEmail, createUser } from "../users/user.model.js";
+import { getUserByEmail, createUser, getUserByUsernameForAuth } from "../users/user.model.js";
 import { generateToken, generateRefreshToken } from "../../utils/jwt.js";
 import { hashPassword, comparePassword } from "../../utils/hash.js";
 import { errorHandlerController } from "../../helpers/errorHandlerController.js";
@@ -26,12 +26,12 @@ const registerController = async (req, res) => {
     
 
 const loginController = async (req, res) => {
-    const {email, password} = req.body;
-    if (!email || !password) {
+    const {username, password} = req.body;
+    if (!username || !password) {
         return errorHandlerController("Todos los campos son obligatorios", 400, res);
     }
     try {
-        const user = await getUserByEmail(email);
+        const user = await getUserByUsernameForAuth(username);
         if (!user) {
             return errorHandlerController("Credenciales inválidas", 401, res);
         }

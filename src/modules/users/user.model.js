@@ -8,6 +8,14 @@ const getUserByEmail = async (email) => {
     return rows[0];
 };
 
+const getUserByUsernameForAuth = async (username) => {
+    const [rows] = await pool.query(
+        "SELECT id_user, username, email, password_hash as password, role, is_visible FROM users WHERE username = ?", 
+        [username]
+    );
+    return rows[0];
+};
+
 const createUser = async (user) => {
     const [result] = await pool.query(
         "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)", 
@@ -76,6 +84,7 @@ const activateUser = (id) => {
 // Exportamos todas las funciones
 export { 
     getUserByEmail, 
+    getUserByUsernameForAuth,
     createUser, 
     getUserInfo, 
     getUserByUsername, 
