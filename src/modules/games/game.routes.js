@@ -4,8 +4,8 @@ import { getTrending, search, getById, getBySlug } from './game.controller.js';
 const router = Router();
 
 
-router.get('/games/trending', getTrending);
-router.get('/games/search', search);
-router.get('/games/:id', getById);
-router.get('/games/slug/:slug', getBySlug);
+router.get('/trending', getTrending);
+router.get('/search', search);
+router.get('/:id', getById);
+router.get('/slug/:slug', getBySlug);
 export default router;

@@ -90,8 +90,8 @@ CREATE TABLE list_items (
 );
 
 CREATE TABLE follows (
-    follower_id INT NOT NULL, -- Quien sigue
-    following_id INT NOT NULL, -- A quien siguen
+    follower_id INT NOT NULL,
+    following_id INT NOT NULL, 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     PRIMARY KEY (follower_id, following_id),
