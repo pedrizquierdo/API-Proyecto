@@ -7,8 +7,8 @@ import { cookieOptions, clearOptions } from "../../config/cookies.js";
 
 
 const registerController = async (req, res) => {
-    const {name, email, password} = req.body;
-    if (!name || !email || !password) {
+    const {username, email, password} = req.body;
+    if (!username || !email || !password) {
         return errorHandlerController("Todos los campos son obligatorios", 400, res);
     }
     try {
