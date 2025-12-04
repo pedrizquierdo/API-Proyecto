@@ -6,7 +6,7 @@ const generateToken = (user) => {
 };
 
 const generateRefreshToken = (user) => {
-    const refreshToken = jwt.sign({id_user: user.id_user}, process.env.JWT_REFRESH_SECRET, {expiresIn: "30d"});
+    const refreshToken = jwt.sign({id_user: user.id_user}, process.env.JWT_SECRET_REFRESH, {expiresIn: "30d"});
     return refreshToken;
 };
 
