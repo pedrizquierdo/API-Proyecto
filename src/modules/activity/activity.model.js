@@ -1,8 +1,6 @@
 import pool from '../../config/db.js';
 
-// 1. Registrar o Actualizar actividad (Core)
 const upsertActivity = async (userId, gameId, activityData) => {
-    // activityData puede traer: { status, rating, is_favorite }
     const query = `
         INSERT INTO user_games (id_user, id_game, status, rating, is_favorite)
         VALUES (?, ?, ?, ?, ?)
@@ -15,7 +13,7 @@ const upsertActivity = async (userId, gameId, activityData) => {
 
     const [result] = await pool.query(query, [
         userId, gameId, 
-        activityData.status || 'plan_to_play', // Default si es nuevo
+        activityData.status || 'plan_to_play',
         activityData.rating || null,
         activityData.is_favorite || false,
         activityData.status || null,
@@ -26,8 +24,6 @@ const upsertActivity = async (userId, gameId, activityData) => {
     return result;
 };
 
-// 2. Obtener la actividad de un usuario para un juego específico
-// (Para saber si pintar el botón de "Like" de color rojo o gris)
 const getActivityByGame = async (userId, gameId) => {
     const [rows] = await pool.query(
         "SELECT * FROM user_games WHERE id_user = ? AND id_game = ?",
@@ -36,7 +32,6 @@ const getActivityByGame = async (userId, gameId) => {
     return rows[0];
 };
 
-// 3. Obtener la Watchlist (Pendientes)
 const getWatchlist = async (userId) => {
     const [rows] = await pool.query(`
         SELECT g.*, ug.created_at as added_at
@@ -48,7 +43,6 @@ const getWatchlist = async (userId) => {
     return rows;
 };
 
-// 4. Eliminar registro (Por si se arrepiente)
 const deleteActivity = async (userId, gameId) => {
     const [result] = await pool.query(
         "DELETE FROM user_games WHERE id_user = ? AND id_game = ?",
