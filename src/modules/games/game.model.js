@@ -55,7 +55,7 @@ const createOrUpdateGame = async (game) => {
         game.title, 
         game.slug, 
         game.cover_url,
-        game.background_url, // <--- NUEVO
+        game.background_url,
         game.release_date, 
         game.developer, 
         game.description, 

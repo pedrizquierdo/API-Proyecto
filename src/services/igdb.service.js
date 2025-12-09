@@ -61,7 +61,7 @@ class IgdbService {
             console.log(`✅ IGDB Respondió con ${response.data.length} juegos.`);
             return this._formatGames(response.data);
         } catch (error) {
-            console.error('❌ ERROR AXIOS:', error.response?.status, error.response?.data || error.message);
+            console.error(' ERROR AXIOS:', error.response?.status, error.response?.data || error.message);
             return [];
         }
     }
@@ -97,7 +97,10 @@ class IgdbService {
     }
 
     _formatGames(igdbData) {
-        let bgUrl = null;
+        
+        return igdbData.map(game => {
+
+            let bgUrl = null;
             
             if (game.screenshots && game.screenshots.length > 0) {
                 bgUrl = `https:${game.screenshots[0].url.replace('t_thumb', 't_1080p')}`;
@@ -105,18 +108,18 @@ class IgdbService {
                 bgUrl = `https:${game.cover.url.replace('t_thumb', 't_1080p')}`;
             }
 
-
-        return igdbData.map(game => ({
-            igdb_id: game.id,
-            title: game.name,
-            slug: game.slug,
-            description: game.summary || "Sin descripción disponible.",
-            cover_url: game.cover ? `https:${game.cover.url.replace('t_thumb', 't_1080p')}` : null,
-            background_url: bgUrl,
-            release_date: game.first_release_date ? new Date(game.first_release_date * 1000) : null,
-            developer: game.involved_companies?.[0]?.company?.name || 'Unknown',
-            popularity: game.total_rating_count || 0
-        }));
+            return {
+                igdb_id: game.id,
+                title: game.name,
+                slug: game.slug,
+                description: game.summary || "Sin descripción disponible.",
+                cover_url: game.cover ? `https:${game.cover.url.replace('t_thumb', 't_1080p')}` : null,
+                background_url: bgUrl, 
+                release_date: game.first_release_date ? new Date(game.first_release_date * 1000) : null,
+                developer: game.involved_companies?.[0]?.company?.name || 'Unknown',
+                popularity: game.total_rating_count || 0
+            };
+        });
     }
 }
 
