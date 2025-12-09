@@ -2,7 +2,7 @@ import pool from '../../config/db.js';
 
 const getGameById = async (id) => {
     const [rows] = await pool.query(
-        "SELECT id_game, igdb_id, title, slug, cover_url, description, release_date, developer, popularity FROM games WHERE id_game = ?", 
+        "SELECT id_game, igdb_id, title, slug, cover_url, background_url, description, release_date, developer, popularity FROM games WHERE id_game = ?", 
         [id]
     );
     return rows[0];
@@ -35,11 +35,15 @@ const searchGamesByTitle = async (searchTerm) => {
 const createOrUpdateGame = async (game) => {
     const isTrendingValue = game.is_trending ? 1 : 0
     const query = `
-        INSERT INTO games (igdb_id, title, slug, cover_url, release_date, developer, description, popularity, is_trending)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO games (
+            igdb_id, title, slug, cover_url, background_url, release_date, 
+            developer, description, popularity, is_trending
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE 
             popularity = VALUES(popularity),
             cover_url = VALUES(cover_url),
+            background_url = VALUES(background_url), -- <--- NUEVO
             description = VALUES(description),
             developer = VALUES(developer),
             is_trending = VALUES(is_trending),
@@ -50,12 +54,13 @@ const createOrUpdateGame = async (game) => {
         game.igdb_id, 
         game.title, 
         game.slug, 
-        game.cover_url, 
+        game.cover_url,
+        game.background_url, // <--- NUEVO
         game.release_date, 
         game.developer, 
         game.description, 
         game.popularity,
-        isTrendingValue
+        isTrendingValue 
     ]);
     
     if (result.insertId) return result.insertId;
