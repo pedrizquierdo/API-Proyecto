@@ -43,7 +43,7 @@ const createOrUpdateGame = async (game) => {
         ON DUPLICATE KEY UPDATE 
             popularity = VALUES(popularity),
             cover_url = VALUES(cover_url),
-            background_url = VALUES(background_url), -- <--- NUEVO
+            background_url = VALUES(background_url),
             description = VALUES(description),
             developer = VALUES(developer),
             is_trending = VALUES(is_trending),
