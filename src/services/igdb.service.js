@@ -26,7 +26,7 @@ class IgdbService {
             this.tokenExpiry = Date.now() + (response.data.expires_in * 1000) - 60000;
             return this.accessToken;
         } catch (error) {
-            console.error('🔥 ERROR CRÍTICO obteniendo Token:', error.message);
+            console.error('ERROR obteniendo Token:', error.message);
             throw new Error('No se pudo autenticar con IGDB');
         }
     }
@@ -34,10 +34,7 @@ class IgdbService {
     async getTrendingGames(limit = 10) {
         const token = await this._getAuthToken();
 
-        // ESTRATEGIA: 
-        // 1. Pedimos el campo 'involved_companies.company.name' (Crítico para el Frontend).
-        // 2. Quitamos filtros complejos (cover, category). Confiamos en que los juegos con
-        //    más rating (>10) ya son juegos principales y tienen portada.
+ 
         const queryBody = `fields name, slug, cover.url, first_release_date, total_rating_count, summary, involved_companies.company.name; sort total_rating_count desc; where total_rating_count > 10; limit ${limit};`;
 
         console.log("📨 Query Developer:", queryBody);
@@ -100,8 +97,7 @@ class IgdbService {
             title: game.name,
             slug: game.slug,
             description: game.summary || "Sin descripción disponible.",
-            // Reemplazo para obtener imagen grande (Cover Big)
-            cover_url: game.cover ? `https:${game.cover.url.replace('t_thumb', 't_cover_big')}` : null,
+            cover_url: game.cover ? `https:${game.cover.url.replace('t_thumb', 't_1080p')}` : null,
             release_date: game.first_release_date ? new Date(game.first_release_date * 1000) : null,
             developer: game.involved_companies?.[0]?.company?.name || 'Unknown',
             popularity: game.total_rating_count || 0
