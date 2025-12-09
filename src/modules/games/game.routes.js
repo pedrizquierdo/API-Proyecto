@@ -7,5 +7,5 @@ const router = Router();
 router.get('/trending', getTrending);
 router.get('/search', search);
 router.get('/:id', getById);
-router.get('/slug/:slug', getBySlug);
+router.get('/:slug', getBySlug);
 export default router;
