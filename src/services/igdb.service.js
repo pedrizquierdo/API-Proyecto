@@ -35,7 +35,12 @@ class IgdbService {
         const token = await this._getAuthToken();
 
  
-        const queryBody = `fields name, slug, cover.url, first_release_date, total_rating_count, summary, involved_companies.company.name; sort total_rating_count desc; where total_rating_count > 10; limit ${limit};`;
+        const queryBody = `
+            fields name, slug, cover.url, first_release_date, total_rating_count, summary, involved_companies.company.name, screenshots.url; 
+            sort total_rating_count desc; 
+            where cover != null & total_rating_count > 10; 
+            limit ${limit};
+        `;
 
         console.log("📨 Query Developer:", queryBody);
 
@@ -92,12 +97,22 @@ class IgdbService {
     }
 
     _formatGames(igdbData) {
+        let bgUrl = null;
+            
+            if (game.screenshots && game.screenshots.length > 0) {
+                bgUrl = `https:${game.screenshots[0].url.replace('t_thumb', 't_1080p')}`;
+            } else if (game.cover) {
+                bgUrl = `https:${game.cover.url.replace('t_thumb', 't_1080p')}`;
+            }
+
+
         return igdbData.map(game => ({
             igdb_id: game.id,
             title: game.name,
             slug: game.slug,
             description: game.summary || "Sin descripción disponible.",
             cover_url: game.cover ? `https:${game.cover.url.replace('t_thumb', 't_1080p')}` : null,
+            background_url: bgUrl,
             release_date: game.first_release_date ? new Date(game.first_release_date * 1000) : null,
             developer: game.involved_companies?.[0]?.company?.name || 'Unknown',
             popularity: game.total_rating_count || 0
