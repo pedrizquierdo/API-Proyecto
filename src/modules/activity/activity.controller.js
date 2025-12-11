@@ -6,17 +6,14 @@ import {
     getFriendsFeed
 } from './activity.model.js';
 
-// Body esperado: { gameId: 10, status: 'played', rating: 4.5, isFavorite: true }
 const logActivity = async (req, res) => {
     try {
-        const userId = req.user.id_user; // Viene de tu Auth Middleware (JWT)
+        const userId = req.user.id_user; 
         const { gameId, status, rating, isFavorite } = req.body;
 
         if (!gameId) {
             return res.status(400).json({ message: "Falta el ID del juego" });
         }
-
-        // Validamos status si viene
         const validStatuses = ['played', 'playing', 'plan_to_play', 'dropped'];
         if (status && !validStatuses.includes(status)) {
             return res.status(400).json({ message: "Estado inválido" });

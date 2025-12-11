@@ -54,14 +54,14 @@ const deleteActivity = async (userId, gameId) => {
 const getFriendsFeed = async (userId, limit = 10) => {
     const query = `
         SELECT 
-            ug.updated_at as activity_date,
-            ug.status, ug.rating, ug.is_favorite,
-            u.username, u.avatar_url,
-            g.id_game, g.title, g.cover_url, g.slug
+        ug.updated_at as activity_date,
+        ug.status, ug.rating, ug.is_favorite,
+        u.username, u.avatar_url,
+        g.id_game, g.title, g.cover_url, g.slug
         FROM user_games ug
-        JOIN follows f ON ug.id_user = f.following_id  -- Solo gente que YO (follower_id) sigo
-        JOIN users u ON ug.id_user = u.id_user         -- Datos del amigo
-        JOIN games g ON ug.id_game = g.id_game         -- Datos del juego
+        JOIN follows f ON ug.id_user = f.following_id
+        JOIN users u ON ug.id_user = u.id_user         
+        JOIN games g ON ug.id_game = g.id_game         
         WHERE f.follower_id = ?
         ORDER BY ug.updated_at DESC
         LIMIT ?;
