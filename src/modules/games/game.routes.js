@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getTrending, search, getById, getBySlug } from './game.controller.js';
+import { getTrending, search, getById, getBySlug, getNewReleases } from './game.controller.js';
 
 const router = Router();
 
