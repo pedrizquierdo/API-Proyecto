@@ -5,6 +5,7 @@ const router = Router();
 
 
 router.get('/trending', getTrending);
+router.get('/new', getNewReleases);
 router.get('/search', search);
 router.get('/:id', getById);
 router.get('/:slug', getBySlug);

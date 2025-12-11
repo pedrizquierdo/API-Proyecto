@@ -86,6 +86,20 @@ const getById = async (req, res) => {
     }
 };
 
+const getNewReleases = async (req, res) => {
+    try {
+        const newGames = await igdbService.getNewReleases(12);
+        
+        for (const game of newGames) {
+            await createOrUpdateGame(game);
+        }
+
+        res.json(newGames);
+    } catch (error) {
+        res.status(500).json({ message: "Error obteniendo lanzamientos" });
+    }
+};
+
 
 const getBySlug = async (req, res) => {
     const { slug } = req.params;
@@ -97,4 +111,4 @@ const getBySlug = async (req, res) => {
         errorHandlerController("Error obteniendo detalles del juego", 500, res, error);
     }
 };
-export { getTrending, search, getById, getBySlug };
+export { getTrending, search, getById, getBySlug, getNewReleases };

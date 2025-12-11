@@ -155,4 +155,5 @@ class IgdbService {
 }
 
 const igdbServiceInstance = new IgdbService();
+
 export default igdbServiceInstance;
