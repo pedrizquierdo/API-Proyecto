@@ -42,7 +42,7 @@ class IgdbService {
             limit ${limit};
         `;
 
-        console.log("📨 Query Developer:", queryBody);
+        console.log("Query Developer:", queryBody);
 
         try {
             const response = await axios.post(
@@ -58,10 +58,41 @@ class IgdbService {
                 }
             );
 
-            console.log(`✅ IGDB Respondió con ${response.data.length} juegos.`);
+            console.log(`IGDB Respondió con ${response.data.length} juegos.`);
             return this._formatGames(response.data);
         } catch (error) {
             console.error(' ERROR AXIOS:', error.response?.status, error.response?.data || error.message);
+            return [];
+        }
+    }
+
+    async getNewReleases(limit = 10) {
+        const token = await this._getAuthToken();
+        const now = Math.floor(Date.now() / 1000);
+
+        const queryBody = `
+            fields name, slug, cover.url, first_release_date, total_rating_count, summary, involved_companies.company.name;
+            sort first_release_date desc; 
+            where first_release_date < ${now} & cover != null & category = (0, 8, 9);
+            limit ${limit};
+        `;
+
+        try {
+            const response = await axios.post(
+                'https://api.igdb.com/v4/games',
+                queryBody,
+                {
+                    headers: {
+                        'Client-ID': this.clientId,
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json',
+                        'Content-Type': 'text/plain'
+                    }
+                }
+            );
+            return this._formatGames(response.data);
+        } catch (error) {
+            console.error('Error New Releases:', error.message);
             return [];
         }
     }
