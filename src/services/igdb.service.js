@@ -69,11 +69,10 @@ class IgdbService {
     async getNewReleases(limit = 10) {
         const token = await this._getAuthToken();
         const now = Math.floor(Date.now() / 1000);
-
         const queryBody = `
-            fields name, slug, cover.url, first_release_date, total_rating_count, summary, involved_companies.company.name;
+            fields name, slug, cover.url, first_release_date, total_rating_count, summary, involved_companies.company.name, screenshots.url;
             sort first_release_date desc; 
-            where first_release_date < ${now} & cover != null & category = (0, 8, 9);
+            where first_release_date < ${now} & cover != null;
             limit ${limit};
         `;
 

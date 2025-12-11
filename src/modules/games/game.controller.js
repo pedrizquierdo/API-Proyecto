@@ -3,6 +3,7 @@ import {
     getGameById,
     getGameBySlug,
     getTrendingGames,
+    getNewGamesLocal,
     searchGamesByTitle,
     createOrUpdateGame,
     getGameByIgdbId,
@@ -88,14 +89,25 @@ const getById = async (req, res) => {
 
 const getNewReleases = async (req, res) => {
     try {
-        const newGames = await igdbService.getNewReleases(12);
-        
-        for (const game of newGames) {
-            await createOrUpdateGame(game);
+        const limit = 12;
+        let newGames = await getNewGamesLocal(limit);
+
+        if (newGames.length < limit) {
+            console.log("Pocos juegos nuevos en local. Consultando IGDB...");
+            const freshGames = await igdbService.getNewReleases(limit);
+            
+            if (freshGames.length > 0) {
+                for (const game of freshGames) {
+                    await createOrUpdateGame(game);
+                }
+
+                newGames = freshGames;
+            }
         }
 
         res.json(newGames);
     } catch (error) {
+        console.error("Error en getNewReleases:", error);
         res.status(500).json({ message: "Error obteniendo lanzamientos" });
     }
 };

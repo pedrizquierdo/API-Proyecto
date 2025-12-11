@@ -32,6 +32,14 @@ const searchGamesByTitle = async (searchTerm) => {
     return rows;
 };
 
+const getNewGamesLocal = async (limit) => {
+    const [rows] = await pool.query(
+        "SELECT * FROM games WHERE release_date IS NOT NULL ORDER BY release_date DESC LIMIT ?", 
+        [limit]
+    );
+    return rows;
+};
+
 const createOrUpdateGame = async (game) => {
     const isTrendingValue = game.is_trending ? 1 : 0
     const query = `
@@ -79,5 +87,6 @@ export {
     getTrendingGames,
     searchGamesByTitle,
     createOrUpdateGame,
-    getGameByIgdbId
+    getGameByIgdbId,
+    getNewGamesLocal
 };
