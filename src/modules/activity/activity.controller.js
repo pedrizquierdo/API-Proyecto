@@ -2,7 +2,8 @@ import {
     upsertActivity,
     getActivityByGame,
     getWatchlist,
-    deleteActivity
+    deleteActivity,
+    getFriendsFeed
 } from './activity.model.js';
 
 // Body esperado: { gameId: 10, status: 'played', rating: 4.5, isFavorite: true }
@@ -52,11 +53,21 @@ const checkStatus = async (req, res) => {
         
         const activity = await getActivityByGame(userId, gameId);
         
-        // Si no hay actividad, devolvemos null o un objeto vacío seguro
         res.json(activity || { status: null, is_favorite: false, rating: null });
     } catch (error) {
         res.status(500).json({ message: "Error verificando estado" });
     }
 };
 
-export { logActivity, getMyWatchlist, checkStatus };
+const getFeed = async (req, res) => {
+    try {
+        const userId = req.user.id_user; // Viene del token
+        const feed = await getFriendsFeed(userId, 10);
+        res.json(feed);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error cargando feed de amigos" });
+    }
+};
+
+export { logActivity, getMyWatchlist, checkStatus, getFeed };
