@@ -63,7 +63,7 @@ const reportReview = async (req, res) => {
             return errorHandlerController("Debes indicar un motivo", 400, res);
         }
 
-        await reviewModel.createReport(id_user, reviewId, reason);
+        await createReport(id_user, reviewId, reason);
         
         res.json({ message: "Reporte enviado. Gracias por ayudar a la comunidad." });
     } catch (error) {
