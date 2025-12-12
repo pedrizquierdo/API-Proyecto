@@ -3,7 +3,8 @@ import {
     getActivityByGame,
     getWatchlist,
     deleteActivity,
-    getFriendsFeed
+    getFriendsFeed,
+    getAllUserGames
 } from './activity.model.js';
 
 const logActivity = async (req, res) => {
@@ -67,4 +68,15 @@ const getFeed = async (req, res) => {
     }
 };
 
-export { logActivity, getMyWatchlist, checkStatus, getFeed };
+const getUserLibrary = async (req, res) => {
+    try {
+        const userId = req.user.id_user;
+        const games = await getAllUserGames(userId);
+        res.json(games);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error obteniendo librería completa" });
+    }
+};
+
+export { logActivity, getMyWatchlist, checkStatus, getFeed, getUserLibrary };

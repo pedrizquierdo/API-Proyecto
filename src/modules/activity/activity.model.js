@@ -20,7 +20,6 @@ const upsertActivity = async (userId, gameId, activityData) => {
         activityData.rating || null,
         activityData.is_favorite || null
     ]);
-
     return result;
 };
 
@@ -71,10 +70,22 @@ const getFriendsFeed = async (userId, limit = 10) => {
     return rows;
 };
 
+const getAllUserGames = async (userId) => {
+    const [rows] = await pool.query(`
+        SELECT g.*, ug.status, ug.rating, ug.is_favorite, ug.created_at as added_at
+        FROM user_games ug
+        JOIN games g ON ug.id_game = g.id_game
+        WHERE ug.id_user = ?
+        ORDER BY ug.updated_at DESC
+    `, [userId]);
+    return rows;
+};
+
 export {
     upsertActivity,
     getActivityByGame,
     getWatchlist,
     deleteActivity,
-    getFriendsFeed
+    getFriendsFeed,
+    getAllUserGames
 };

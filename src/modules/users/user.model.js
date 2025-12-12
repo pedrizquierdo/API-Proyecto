@@ -25,10 +25,18 @@ const createUser = async (user) => {
 };
 
 const getUserInfo = async (id) => {
-    const [rows] = await pool.query(
-        "SELECT id_user, username, email, avatar_url, bio, pronouns, role, created_at FROM users WHERE id_user = ?", 
-        [id]
-    );
+    const query = `
+        SELECT 
+            u.id_user, u.username, u.email, u.avatar_url, u.bio, u.pronouns, u.role, u.created_at,
+            -- Subconsultas para contadores
+            (SELECT COUNT(*) FROM follows WHERE following_id = u.id_user) as followers_count,
+            (SELECT COUNT(*) FROM follows WHERE follower_id = u.id_user) as following_count,
+            (SELECT COUNT(*) FROM user_games WHERE id_user = u.id_user) as games_count
+        FROM users u 
+        WHERE u.id_user = ?
+    `;
+    
+    const [rows] = await pool.query(query, [id]);
     return rows[0];
 };
 
