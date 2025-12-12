@@ -72,7 +72,7 @@ const getFriendsFeed = async (userId, limit = 10) => {
 
 const getAllUserGames = async (userId) => {
     const [rows] = await pool.query(`
-        SELECT g.*, ug.status, ug.rating, ug.is_favorite, ug.created_at as added_at
+        SELECT g.*, ug.status, ug.rating, ug.is_favorite, ug.updated_at as added_at
         FROM user_games ug
         JOIN games g ON ug.id_game = g.id_game
         WHERE ug.id_user = ?
