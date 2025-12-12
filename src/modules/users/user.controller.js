@@ -1,4 +1,4 @@
-import { getUserInfo, softDeleteUser, activateUser, updateUserProfile, getUserByUsername, followUser, unfollowUser, checkFollowStatus, searchUsersByUsername } from "./user.model.js";
+import { getUserInfo, softDeleteUser, activateUser, updateUserProfile, getUserByUsername, followUser, unfollowUser, checkFollowStatus, searchUsersByUsername, getFollowersModel, getFollowingModel } from "./user.model.js";
 import { errorHandlerController } from "../../helpers/errorHandlerController.js";
 
 const getUserInfoController = async (req, res) => {
