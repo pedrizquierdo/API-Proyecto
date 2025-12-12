@@ -64,6 +64,7 @@ const logoutController = async (req, res) => {
     res.json({message: "Cierre de sesión exitoso"});
 };
 
+
 const refreshController = async (req, res) => {
     try {
         const user = req.user;
