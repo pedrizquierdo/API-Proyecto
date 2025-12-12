@@ -22,5 +22,6 @@ router.post("/follow/:id", verifyToken, followUserController);
 router.get("/:username", getPublicProfileController);
 router.delete("/follow/:id", verifyToken, unfollowUserController);
 router.get("/search", searchUsersController); 
+router.get("/follow/:id/check", verifyToken, checkFollowController);
 
 export default router;
