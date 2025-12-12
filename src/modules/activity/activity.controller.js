@@ -10,7 +10,7 @@ import {
 const logActivity = async (req, res) => {
     try {
         const userId = req.user.id_user; 
-        const { gameId, status, rating, isFavorite } = req.body;
+        const { gameId, status, rating, isFavorite, isLiked } = req.body;
 
         if (!gameId) {
             return res.status(400).json({ message: "Falta el ID del juego" });
@@ -23,7 +23,8 @@ const logActivity = async (req, res) => {
         await upsertActivity(userId, gameId, {
             status,
             rating,
-            is_favorite: isFavorite
+            is_favorite: isFavorite,
+            is_liked: isLiked
         });
 
         res.json({ message: "Actividad actualizada", gameId });
@@ -51,15 +52,24 @@ const checkStatus = async (req, res) => {
         
         const activity = await getActivityByGame(userId, gameId);
         
-        res.json(activity || { status: null, is_favorite: false, rating: null });
+        if (activity) {
+            res.json({
+                ...activity,
+                is_liked: Boolean(activity.is_liked),
+                is_favorite: Boolean(activity.is_favorite)
+            });
+        } else {
+            res.json({ status: null, is_favorite: false, is_liked: false, rating: null });
+        }
     } catch (error) {
+        console.error("Error checkStatus:", error);
         res.status(500).json({ message: "Error verificando estado" });
     }
 };
 
 const getFeed = async (req, res) => {
     try {
-        const userId = req.user.id_user; // Viene del token
+        const userId = req.user.id_user; 
         const feed = await getFriendsFeed(userId, 10);
         res.json(feed);
     } catch (error) {
