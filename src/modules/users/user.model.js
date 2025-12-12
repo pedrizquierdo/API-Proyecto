@@ -89,7 +89,6 @@ const activateUser = (id) => {
     return updateVisibility(id, true);
 };
 
-// Exportamos todas las funciones
 export { 
     getUserByEmail, 
     getUserByUsernameForAuth,
