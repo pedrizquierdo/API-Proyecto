@@ -5,7 +5,9 @@ import {
     activateUserController,
     updateProfileController, 
     getPublicProfileController, 
-    followUserController 
+    followUserController,
+    unfollowUserController,
+    checkFollowController
 } from "./user.controller.js";
 import { verifyToken } from "../../middlewares/authMiddleware.js";
 
@@ -17,5 +19,6 @@ router.put("/softdelete", verifyToken, softDeleteUserController);
 router.put("/active", verifyToken, activateUserController);
 router.post("/follow/:id", verifyToken, followUserController);
 router.get("/:username", getPublicProfileController);
+router.delete("/follow/:id", verifyToken, unfollowUserController);
 
 export default router;

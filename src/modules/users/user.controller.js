@@ -1,4 +1,4 @@
-import { getUserInfo, softDeleteUser, activateUser, updateUserProfile, getUserByUsername, followUser } from "./user.model.js";
+import { getUserInfo, softDeleteUser, activateUser, updateUserProfile, getUserByUsername, followUser, unfollowUser, checkFollowStatus } from "./user.model.js";
 import { errorHandlerController } from "../../helpers/errorHandlerController.js";
 
 const getUserInfoController = async (req, res) => {
@@ -63,6 +63,30 @@ const followUserController = async (req, res) => {
     }
 };
 
+const unfollowUserController = async (req, res) => {
+    const followerId = req.user.id_user; 
+    const followingId = req.params.id;   
+
+    try {
+        await unfollowUser(followerId, followingId);
+        res.status(200).json({ message: "Usuario dejado de seguir" });
+    } catch (error) {
+        return errorHandlerController("Error al dejar de seguir", 500, res, error);
+    }
+};
+
+const checkFollowController = async (req, res) => {
+    const followerId = req.user.id_user;
+    const followingId = req.params.id;
+
+    try {
+        const isFollowing = await checkFollowStatus(followerId, followingId);
+        res.json({ isFollowing });
+    } catch (error) {
+        return errorHandlerController("Error verificando estado", 500, res, error);
+    }
+};
+
 const softDeleteUserController = async (req, res) => {
     const { id_user } = req.user;
     try {
@@ -95,5 +119,7 @@ export {
     getPublicProfileController,
     followUserController,
     softDeleteUserController, 
-    activateUserController
+    activateUserController,
+    unfollowUserController,
+    checkFollowController
 };

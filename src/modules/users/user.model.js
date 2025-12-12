@@ -76,6 +76,22 @@ const followUser = async (followerId, followingId) => {
     return result;
 };
 
+const unfollowUser = async (followerId, followingId) => {
+    const [result] = await pool.query(
+        "DELETE FROM follows WHERE follower_id = ? AND following_id = ?",
+        [followerId, followingId]
+    );
+    return result.affectedRows > 0;
+};
+
+const checkFollowStatus = async (followerId, followingId) => {
+    const [rows] = await pool.query(
+        "SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?",
+        [followerId, followingId]
+    );
+    return rows.length > 0;
+};
+
 const updateVisibility = async (id, visibility) => {
     const [result] = await pool.query("UPDATE users SET is_visible = ? WHERE id_user = ?", [visibility, id]);
     return result.affectedRows > 0;
@@ -97,6 +113,9 @@ export {
     getUserByUsername, 
     updateUserProfile,
     followUser,
+    unfollowUser,
+    updateVisibility,
+    checkFollowStatus,
     softDeleteUser, 
     activateUser 
 };
