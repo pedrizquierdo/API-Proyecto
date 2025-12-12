@@ -36,7 +36,7 @@ const verifyAdmin = (req, res, next) => {
     if (req.user && req.user.role === 'admin') {
         next();
     } else {
-        console.log("⛔ Bloqueado: No es admin.");
+        console.log("Bloqueado: No es admin.");
         return res.status(403).json({ message: "Acceso denegado: Requiere permisos de Administrador" });
     }
 };
