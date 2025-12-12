@@ -16,7 +16,7 @@ const upsertActivity = async (userId, gameId, activityData) => {
     const rating = activityData.rating || null;
     const isFav = activityData.is_favorite !== undefined ? activityData.is_favorite : null;
     const isLiked = activityData.is_liked !== undefined ? activityData.is_liked : null;
-    const defStatus = status || 'plan_to_play';
+    const defStatus = status || null;
     const defRating = rating;
     const defFav = isFav !== null ? isFav : 0;
     const defLiked = isLiked !== null ? isLiked : 0;
