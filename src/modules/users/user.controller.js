@@ -100,6 +100,28 @@ const searchUsersController = async (req, res) => {
     }
 };
 
+const getFollowersController = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const followers = await getFollowersModel(id);
+        res.json(followers);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error al obtener seguidores" });
+    }
+};
+
+const getFollowingController = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const following = await getFollowingModel(id);
+        res.json(following);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error al obtener seguidos" });
+    }
+};
+
 const softDeleteUserController = async (req, res) => {
     const { id_user } = req.user;
     try {
@@ -135,5 +157,7 @@ export {
     activateUserController,
     unfollowUserController,
     checkFollowController,
-    searchUsersController
+    searchUsersController,
+    getFollowersController,
+    getFollowingController
 };

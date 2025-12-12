@@ -105,6 +105,26 @@ const searchUsersByUsername = async (query) => {
     return rows;
 };
 
+const getFollowersModel = async (userId) => {
+    const [rows] = await pool.query(`
+        SELECT u.id_user, u.username, u.avatar_url, u.bio
+        FROM follows f
+        JOIN users u ON f.follower_id = u.id_user
+        WHERE f.following_id = ?
+    `, [userId]);
+    return rows;
+};
+
+const getFollowingModel = async (userId) => {
+    const [rows] = await pool.query(`
+        SELECT u.id_user, u.username, u.avatar_url, u.bio
+        FROM follows f
+        JOIN users u ON f.following_id = u.id_user
+        WHERE f.follower_id = ?
+    `, [userId]);
+    return rows;
+};
+
 const softDeleteUser = (id) => {
     return updateVisibility(id, false);
 };
@@ -126,5 +146,7 @@ export {
     checkFollowStatus,
     softDeleteUser, 
     activateUser,
-    searchUsersByUsername 
+    searchUsersByUsername,
+    getFollowersModel,
+    getFollowingModel
 };
