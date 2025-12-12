@@ -97,6 +97,14 @@ const updateVisibility = async (id, visibility) => {
     return result.affectedRows > 0;
 };
 
+const searchUsersByUsername = async (query) => {
+    const [rows] = await pool.query(
+        "SELECT id_user, username, avatar_url FROM users WHERE username LIKE ? LIMIT 5",
+        [`%${query}%`]
+    );
+    return rows;
+};
+
 const softDeleteUser = (id) => {
     return updateVisibility(id, false);
 };
@@ -117,5 +125,6 @@ export {
     updateVisibility,
     checkFollowStatus,
     softDeleteUser, 
-    activateUser 
+    activateUser,
+    searchUsersByUsername 
 };

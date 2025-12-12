@@ -1,4 +1,4 @@
-import { getUserInfo, softDeleteUser, activateUser, updateUserProfile, getUserByUsername, followUser, unfollowUser, checkFollowStatus } from "./user.model.js";
+import { getUserInfo, softDeleteUser, activateUser, updateUserProfile, getUserByUsername, followUser, unfollowUser, checkFollowStatus, searchUsersByUsername } from "./user.model.js";
 import { errorHandlerController } from "../../helpers/errorHandlerController.js";
 
 const getUserInfoController = async (req, res) => {
@@ -87,6 +87,14 @@ const checkFollowController = async (req, res) => {
     }
 };
 
+const searchUsersByUsername = async (query) => {
+    const [rows] = await pool.query(
+        "SELECT id_user, username, avatar_url FROM users WHERE username LIKE ? LIMIT 5",
+        [`%${query}%`]
+    );
+    return rows;
+};
+
 const softDeleteUserController = async (req, res) => {
     const { id_user } = req.user;
     try {
@@ -121,5 +129,6 @@ export {
     softDeleteUserController, 
     activateUserController,
     unfollowUserController,
-    checkFollowController
+    checkFollowController,
+    searchUsersByUsername
 };
