@@ -4,8 +4,21 @@ const upsertActivity = async (userId, gameId, activityData) => {
     
     const statusProvided = activityData.status !== undefined;
     
+    let incomingLike = undefined;
+    if (activityData.isLiked !== undefined) incomingLike = activityData.isLiked;
+    else if (activityData.is_liked !== undefined) incomingLike = activityData.is_liked;
     
-    const incomingLike = activityData.isLiked !== undefined ? activityData.isLiked : activityData.is_liked;
+    const status = activityData.status || null;
+
+    const rating = activityData.rating !== undefined ? activityData.rating : null;
+
+    const isFav = activityData.is_favorite !== undefined ? activityData.is_favorite : null;
+    const isLiked = incomingLike !== undefined ? incomingLike : null; 
+
+    const defStatus = status || null;
+    const defRating = rating !== null ? rating : null;
+    const defFav = isFav !== null ? isFav : 0;
+    const defLiked = isLiked !== null ? isLiked : 0;
 
     const query = `
         INSERT INTO user_games (id_user, id_game, status, rating, is_favorite, is_liked)
@@ -18,18 +31,8 @@ const upsertActivity = async (userId, gameId, activityData) => {
             updated_at = NOW();
     `;
 
-    const status = activityData.status || null;
-    const rating = activityData.rating || null;
-    const isFav = activityData.is_favorite !== undefined ? activityData.is_favorite : null;
-    const isLiked = incomingLike !== undefined ? incomingLike : null; // 
-
-    const defStatus = status || null;
-    const defRating = rating;
-    const defFav = isFav !== null ? isFav : 0;
-    const defLiked = isLiked !== null ? isLiked : 0;
-
     const [result] = await pool.query(query, [
-        
+    
         userId, gameId, defStatus, defRating, defFav, defLiked,
         
         statusProvided, status,  
