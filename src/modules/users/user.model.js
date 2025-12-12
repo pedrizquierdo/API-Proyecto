@@ -18,8 +18,8 @@ const getUserByUsernameForAuth = async (username) => {
 
 const createUser = async (user) => {
     const [result] = await pool.query(
-        "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)", 
-        [user.username, user.email, user.password]
+        "INSERT INTO users (username, email, password_hash, avatar_url) VALUES (?, ?, ?, ?)", 
+        [user.username, user.email, user.password, user.avatar_url]
     );
     return result.insertId;
 };

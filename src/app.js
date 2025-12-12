@@ -4,7 +4,6 @@ import cookie from "cookie-parser";
 import cors from "cors";
 import { corsOptions } from "./config/cors.js";
 import rateLimit from "express-rate-limit";
-
 import authRoutes from "./modules/auth/auth.routes.js";
 import userRoutes from "./modules/users/user.routes.js";
 import gameRoutes from "./modules/games/game.routes.js";

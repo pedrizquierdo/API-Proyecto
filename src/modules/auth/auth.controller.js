@@ -16,8 +16,9 @@ const registerController = async (req, res) => {
         if (emailExists) {
             return errorHandlerController("El email ya existe", 400, res);
         }
+        const defaultAvatar = `https://api.dicebear.com/7.x/pixel-art/svg?seed=${username}`;
         const password_hash = await hashPassword(password);  
-        const id = await createUser({username, email, password: password_hash});
+        const id = await createUser({username, email, password: password_hash, avatar_url: defaultAvatar});
         res.status(201).json({message: "Usuario creado exitosamente", id}); 
     } catch (error) {
         return errorHandlerController("Error al registrar el usuario", 500, res, error);
