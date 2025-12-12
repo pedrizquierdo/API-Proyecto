@@ -1,4 +1,4 @@
-import { createReview, getReviewsByGame, getReviewsByUser, deleteReview } from './reviews.model.js';
+import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport } from './reviews.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 
 
