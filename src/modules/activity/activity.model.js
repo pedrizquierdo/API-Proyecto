@@ -1,30 +1,43 @@
 import pool from '../../config/db.js';
 
 const upsertActivity = async (userId, gameId, activityData) => {
+    
+    const statusProvided = activityData.status !== undefined;
+    
+    
+    const incomingLike = activityData.isLiked !== undefined ? activityData.isLiked : activityData.is_liked;
+
     const query = `
         INSERT INTO user_games (id_user, id_game, status, rating, is_favorite, is_liked)
         VALUES (?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-            status = COALESCE(?, status),
+            status = IF(?, ?, status),      
             rating = COALESCE(?, rating),
-            is_favorite = COALESCE(?, is_favorite), -- Top 4
-            is_liked = COALESCE(?, is_liked),       -- Corazón (Nuevo)
+            is_favorite = COALESCE(?, is_favorite),
+            is_liked = COALESCE(?, is_liked),      
             updated_at = NOW();
     `;
 
     const status = activityData.status || null;
     const rating = activityData.rating || null;
     const isFav = activityData.is_favorite !== undefined ? activityData.is_favorite : null;
-    const isLiked = activityData.is_liked !== undefined ? activityData.is_liked : null;
+    const isLiked = incomingLike !== undefined ? incomingLike : null; // 
+
     const defStatus = status || null;
     const defRating = rating;
     const defFav = isFav !== null ? isFav : 0;
     const defLiked = isLiked !== null ? isLiked : 0;
 
     const [result] = await pool.query(query, [
+        
         userId, gameId, defStatus, defRating, defFav, defLiked,
-        status, rating, isFav, isLiked
+        
+        statusProvided, status,  
+        rating, 
+        isFav, 
+        isLiked
     ]);
+    
     return result;
 };
 
