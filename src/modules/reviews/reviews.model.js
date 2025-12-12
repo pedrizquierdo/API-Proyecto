@@ -47,4 +47,39 @@ const deleteReview = async (reviewId, userId) => {
     return result.affectedRows > 0;
 };
 
-export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport };
+const getReportedReviewsList = async () => {
+    const query = `
+        SELECT 
+        r.id_review, r.content, r.created_at,
+        u.username as review_username, 
+        g.title as game_title, g.cover_url as game_cover_url,
+        COUNT(rr.id_report) as report_count,
+        GROUP_CONCAT(DISTINCT rr.reason SEPARATOR ', ') as all_reasons
+        FROM reviews r
+        JOIN review_reports rr ON r.id_review = rr.id_review
+        JOIN users u ON r.id_user = u.id_user
+        JOIN games g ON r.id_game = g.id_game
+        WHERE rr.status = 'pending'
+        GROUP BY r.id_review
+        ORDER BY report_count DESC
+    `;
+    const [rows] = await pool.query(query);
+    return rows;
+};
+
+const deleteReviewByAdmin = async (reviewId) => {
+    const [result] = await pool.query("DELETE FROM reviews WHERE id_review = ?", [reviewId]);
+    return result.affectedRows > 0;
+};
+
+const dismissReports = async (reviewId) => {
+    const [result] = await pool.query(
+        "UPDATE review_reports SET status = 'dismissed' WHERE id_review = ?", 
+        [reviewId]
+    );
+    return result.affectedRows > 0;
+};
+
+
+
+export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports };

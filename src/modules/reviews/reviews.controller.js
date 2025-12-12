@@ -1,4 +1,4 @@
-import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport } from './reviews.model.js';
+import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports } from './reviews.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 
 
@@ -40,16 +40,41 @@ const getUserReviews = async (req, res) => {
 
 const removeReview = async (req, res) => {
     try {
-        const { id_user } = req.user;
+        const { id_user, role } = req.user;
         const { reviewId } = req.params;
 
-        const success = await deleteReview(reviewId, id_user);
+        let success = false;
+
+        if (role === 'admin') {
+            success = await deleteReviewByAdmin(reviewId);
+        } else {
+            success = await deleteReview(reviewId, id_user);
+        }
         if (!success) {
             return errorHandlerController("Reseña no encontrada o no tienes permiso", 403, res);
         }
-        res.json({ message: "Reseña eliminada" });
+        res.json({ message: "Reseña eliminada correctamente" });
     } catch (error) {
         return errorHandlerController("Error eliminando reseña", 500, res, error);
+    }
+};
+
+const getReported = async (req, res) => {
+    try {
+        const reports = await getReportedReviewsList();
+        res.json(reports);
+    } catch (error) {
+        return errorHandlerController("Error obteniendo reportes", 500, res, error);
+    }
+};
+
+const approveReview = async (req, res) => {
+    try {
+        const { reviewId } = req.params;
+        await dismissReports(reviewId);
+        res.json({ message: "Reportes descartados, reseña aprobada." });
+    } catch (error) {
+        return errorHandlerController("Error aprobando reseña", 500, res, error);
     }
 };
 
@@ -71,4 +96,4 @@ const reportReview = async (req, res) => {
     }
 };
 
-export { addReview, getGameReviews, getUserReviews, removeReview, reportReview };
+export { addReview, getGameReviews, getUserReviews, removeReview, reportReview, getReported, approveReview };

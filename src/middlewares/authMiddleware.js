@@ -31,4 +31,12 @@ const verifyRefreshToken = (req, res, next) => {
     });
 };
 
-export {verifyToken, verifyRefreshToken};
+const verifyAdmin = (req, res, next) => {
+    if (req.user && req.user.role === 'admin') {
+        next();
+    } else {
+        return res.status(403).json({ message: "Acceso denegado: Requiere permisos de Administrador" });
+    }
+};
+
+export {verifyToken, verifyRefreshToken, verifyAdmin};
