@@ -75,27 +75,11 @@ const getFriendsFeed = async (userId, limit = 10) => {
 };
 
 const getAllUserGames = async (userId) => {
-    console.log("--> EJECUTANDO FILTRO ESTRICTO (Rating + Like) PARA USUARIO:", userId);
-    
     const [rows] = await pool.query(`
         SELECT g.*, ug.status, ug.rating, ug.is_favorite, ug.is_liked, ug.updated_at as added_at
         FROM user_games ug
         JOIN games g ON ug.id_game = g.id_game
         WHERE ug.id_user = ?
-        AND ug.rating IS NOT NULL AND ug.rating > 0  
-        AND ug.is_liked = 1
-        ORDER BY ug.updated_at DESC
-    `, [userId]);
-    return rows;
-};
-
-const getLikedGames = async (userId) => {
-    const [rows] = await pool.query(`
-        SELECT g.*, ug.updated_at as liked_at, ug.is_liked, ug.rating
-        FROM user_games ug
-        JOIN games g ON ug.id_game = g.id_game
-        WHERE ug.id_user = ? 
-        AND ug.is_liked = 1
         ORDER BY ug.updated_at DESC
     `, [userId]);
     return rows;
@@ -107,6 +91,5 @@ export {
     getWatchlist,
     deleteActivity,
     getFriendsFeed,
-    getAllUserGames,
-    getLikedGames
+    getAllUserGames
 };
