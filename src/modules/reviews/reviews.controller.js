@@ -53,4 +53,22 @@ const removeReview = async (req, res) => {
     }
 };
 
-export { addReview, getGameReviews, getUserReviews, removeReview };
+const reportReview = async (req, res) => {
+    try {
+        const { id_user } = req.user; 
+        const { reviewId } = req.params; 
+        const { reason } = req.body; 
+
+        if (!reason) {
+            return errorHandlerController("Debes indicar un motivo", 400, res);
+        }
+
+        await reviewModel.createReport(id_user, reviewId, reason);
+        
+        res.json({ message: "Reporte enviado. Gracias por ayudar a la comunidad." });
+    } catch (error) {
+        return errorHandlerController("Error enviando reporte", 500, res, error);
+    }
+};
+
+export { addReview, getGameReviews, getUserReviews, removeReview, reportReview };

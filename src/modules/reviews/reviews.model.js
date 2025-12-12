@@ -31,6 +31,14 @@ const getReviewsByUser = async (userId) => {
     return rows;
 };
 
+const createReport = async (userId, reviewId, reason) => {
+    const [result] = await pool.query(
+        "INSERT INTO review_reports (id_user, id_review, reason) VALUES (?, ?, ?)",
+        [userId, reviewId, reason]
+    );
+    return result.insertId;
+};
+
 const deleteReview = async (reviewId, userId) => {
     const [result] = await pool.query(
         "DELETE FROM reviews WHERE id_review = ? AND id_user = ?",
@@ -39,4 +47,4 @@ const deleteReview = async (reviewId, userId) => {
     return result.affectedRows > 0;
 };
 
-export { createReview, getReviewsByGame, getReviewsByUser, deleteReview };
+export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport };
