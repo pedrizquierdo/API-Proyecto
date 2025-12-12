@@ -31,6 +31,7 @@ const verifyRefreshToken = (req, res, next) => {
     });
 };
 
+
 const verifyAdmin = (req, res, next) => {
     console.log("VERIFICANDO ADMIN:");
     console.log("Usuario ID:", req.user?.id_user);
