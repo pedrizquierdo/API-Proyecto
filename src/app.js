@@ -26,7 +26,7 @@ app.use(cors(corsOptions));
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 500, // 500 requests por IP
+  max: 1000, // 1000 requests por IP
   message: "Demasiadas peticiones, intenta de nuevo más tarde",
   standardHeaders: true,
   legacyHeaders: false,
