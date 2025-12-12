@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { addReview, getGameReviews, getUserReviews, removeReview, reportReview, getReported, approveReview } from './reviews.controller.js';
-import { verifyToken } from '../../middlewares/authMiddleware.js';
+import { verifyToken, verifyAdmin } from '../../middlewares/authMiddleware.js';
 
 const router = Router();
 
