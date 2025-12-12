@@ -87,12 +87,17 @@ const checkFollowController = async (req, res) => {
     }
 };
 
-const searchUsersByUsername = async (query) => {
-    const [rows] = await pool.query(
-        "SELECT id_user, username, avatar_url FROM users WHERE username LIKE ? LIMIT 5",
-        [`%${query}%`]
-    );
-    return rows;
+const searchUsersController = async (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+
+    try {
+        // Llamamos a la función importada, NO la redefinimos aquí
+        const users = await searchUsersByUsername(q);
+        res.json(users);
+    } catch (error) {
+        return errorHandlerController("Error buscando usuarios", 500, res, error);
+    }
 };
 
 const softDeleteUserController = async (req, res) => {
@@ -130,5 +135,5 @@ export {
     activateUserController,
     unfollowUserController,
     checkFollowController,
-    searchUsersByUsername
+    searchUsersController
 };
