@@ -75,6 +75,8 @@ const getFriendsFeed = async (userId, limit = 10) => {
 };
 
 const getAllUserGames = async (userId) => {
+    console.log("--> EJECUTANDO FILTRO ESTRICTO (Rating + Like) PARA USUARIO:", userId);
+    
     const [rows] = await pool.query(`
         SELECT g.*, ug.status, ug.rating, ug.is_favorite, ug.is_liked, ug.updated_at as added_at
         FROM user_games ug
