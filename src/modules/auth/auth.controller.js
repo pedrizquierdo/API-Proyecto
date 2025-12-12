@@ -1,4 +1,4 @@
-import { getUserByEmail, createUser, getUserByUsernameForAuth } from "../users/user.model.js";
+import { getUserByEmail, createUser, getUserByUsernameForAuth, getUserByUsername } from "../users/user.model.js";
 import { generateToken, generateRefreshToken } from "../../utils/jwt.js";
 import { hashPassword, comparePassword } from "../../utils/hash.js";
 import { errorHandlerController } from "../../helpers/errorHandlerController.js";
@@ -19,7 +19,32 @@ const registerController = async (req, res) => {
         const defaultAvatar = `https://api.dicebear.com/7.x/pixel-art/svg?seed=${username}`;
         const password_hash = await hashPassword(password);  
         const id = await createUser({username, email, password: password_hash, avatar_url: defaultAvatar});
-        res.status(201).json({message: "Usuario creado exitosamente", id}); 
+        const newUser = {
+            id_user: id,
+            username: username,
+            email: email,
+            role: 'user'
+        };
+
+        const token = generateToken(newUser);
+        const refreshToken = generateRefreshToken(newUser);
+
+        res.cookie("token", token, {
+            ...cookieOptions,
+            maxAge: 15 * 60 * 1000 
+        });
+        res.cookie("refreshToken", refreshToken, {
+            ...cookieOptions,
+            maxAge: 30 * 24 * 60 * 60 * 1000 
+        });
+
+        res.status(201).json({
+            message: "Usuario creado y logueado exitosamente", 
+            id,
+            token,
+            user: { id: id, username: username }
+        }); 
+
     } catch (error) {
         return errorHandlerController("Error al registrar el usuario", 500, res, error);
     }
@@ -36,7 +61,7 @@ const loginController = async (req, res) => {
         if (!user) {
             return errorHandlerController("Credenciales inválidas", 401, res);
         }
-        if (!user.is_visible) {
+        if (user.is_visible === 0 || user.is_visible === false) {
             return errorHandlerController("Usuario desactivado", 403, res);
         }
         const validPassword = await comparePassword(password, user.password);
@@ -53,7 +78,11 @@ const loginController = async (req, res) => {
             ...cookieOptions,
             maxAge: 30 * 24 * 60 * 60 * 1000 // 30 días
         });
-        res.json({message: "Inicio de sesión exitoso"});
+        res.json({
+            message: "Inicio de sesión exitoso", 
+            token,
+            user: { id: user.id_user, username: user.username } 
+        });
     } catch (error) {
         return errorHandlerController("Error al iniciar sesión", 500, res, error);
     }
