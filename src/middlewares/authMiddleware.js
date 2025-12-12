@@ -33,10 +33,6 @@ const verifyRefreshToken = (req, res, next) => {
 
 
 const verifyAdmin = (req, res, next) => {
-    console.log("VERIFICANDO ADMIN:");
-    console.log("Usuario ID:", req.user?.id_user);
-    console.log("Rol detectado:", req.user?.role);
-
     if (req.user && req.user.role === 'admin') {
         next();
     } else {
