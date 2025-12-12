@@ -1,30 +1,36 @@
 import pool from '../../config/db.js';
 
 const upsertActivity = async (userId, gameId, activityData) => {
+
+    const statusProvided = activityData.status !== undefined;
+    const ratingProvided = activityData.rating !== undefined;
+    const favProvided = activityData.is_favorite !== undefined;
+    const likeProvided = activityData.is_liked !== undefined;
+
+    const statusVal = activityData.status || null;
+    const ratingVal = activityData.rating || null;
+    const favVal = activityData.is_favorite ? 1 : 0;
+    const likeVal = activityData.is_liked ? 1 : 0;
+
     const query = `
-        INSERT INTO user_games (id_user, id_game, status, rating, is_favorite, is_liked)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO user_games (id_user, id_game, status, rating, is_favorite, is_liked, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
         ON DUPLICATE KEY UPDATE
-            status = COALESCE(?, status),
-            rating = COALESCE(?, rating),
-            is_favorite = COALESCE(?, is_favorite), -- Top 4
-            is_liked = COALESCE(?, is_liked),       -- Corazón (Nuevo)
+            -- Si statusProvided es true, usa el nuevo valor (aunque sea null). Si es false, deja el viejo.
+            status = IF(?, VALUES(status), status),
+            rating = IF(?, VALUES(rating), rating),
+            is_favorite = IF(?, VALUES(is_favorite), is_favorite),
+            is_liked = IF(?, VALUES(is_liked), is_liked),
             updated_at = NOW();
     `;
 
-    const status = activityData.status || null;
-    const rating = activityData.rating || null;
-    const isFav = activityData.is_favorite !== undefined ? activityData.is_favorite : null;
-    const isLiked = activityData.is_liked !== undefined ? activityData.is_liked : null;
-    const defStatus = status || null;
-    const defRating = rating;
-    const defFav = isFav !== null ? isFav : 0;
-    const defLiked = isLiked !== null ? isLiked : 0;
-
     const [result] = await pool.query(query, [
-        userId, gameId, defStatus, defRating, defFav, defLiked,
-        status, rating, isFav, isLiked
+        // Valores para el INSERT
+        userId, gameId, statusVal, ratingVal, favVal, likeVal,
+        // Banderas para el IF del UPDATE
+        statusProvided, ratingProvided, favProvided, likeProvided
     ]);
+    
     return result;
 };
 
