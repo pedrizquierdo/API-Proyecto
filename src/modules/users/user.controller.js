@@ -103,22 +103,24 @@ const searchUsersController = async (req, res) => {
 const getFollowersController = async (req, res) => {
     try {
         const { id } = req.params;
-        const followers = await getFollowersModel(id);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const followers = await getFollowersModel(id, page, limit);
         res.json(followers);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error al obtener seguidores" });
+        return errorHandlerController("Error al obtener seguidores", 500, res, error);
     }
 };
 
 const getFollowingController = async (req, res) => {
     try {
         const { id } = req.params;
-        const following = await getFollowingModel(id);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const following = await getFollowingModel(id, page, limit);
         res.json(following);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error al obtener seguidos" });
+        return errorHandlerController("Error al obtener seguidos", 500, res, error);
     }
 };
 

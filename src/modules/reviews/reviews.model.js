@@ -9,14 +9,16 @@ const createReview = async (reviewData) => {
     return result.insertId;
 };
 
-const getReviewsByGame = async (gameId) => {
+const getReviewsByGame = async (gameId, page = 1, limit = 20) => {
+    const offset = (page - 1) * limit;
     const [rows] = await pool.query(`
-        SELECT r.*, u.username, u.avatar_url 
+        SELECT r.*, u.username, u.avatar_url
         FROM reviews r
         JOIN users u ON r.id_user = u.id_user
         WHERE r.id_game = ?
         ORDER BY r.created_at DESC
-    `, [gameId]);
+        LIMIT ? OFFSET ?
+    `, [gameId, limit, offset]);
     return rows;
 };
 

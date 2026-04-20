@@ -106,23 +106,27 @@ const searchUsersByUsername = async (query) => {
     return rows;
 };
 
-const getFollowersModel = async (userId) => {
+const getFollowersModel = async (userId, page = 1, limit = 20) => {
+    const offset = (page - 1) * limit;
     const [rows] = await pool.query(`
         SELECT u.id_user, u.username, u.avatar_url, u.bio
         FROM follows f
         JOIN users u ON f.follower_id = u.id_user
         WHERE f.following_id = ?
-    `, [userId]);
+        LIMIT ? OFFSET ?
+    `, [userId, limit, offset]);
     return rows;
 };
 
-const getFollowingModel = async (userId) => {
+const getFollowingModel = async (userId, page = 1, limit = 20) => {
+    const offset = (page - 1) * limit;
     const [rows] = await pool.query(`
         SELECT u.id_user, u.username, u.avatar_url, u.bio
         FROM follows f
         JOIN users u ON f.following_id = u.id_user
         WHERE f.follower_id = ?
-    `, [userId]);
+        LIMIT ? OFFSET ?
+    `, [userId, limit, offset]);
     return rows;
 };
 

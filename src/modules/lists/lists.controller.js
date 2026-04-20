@@ -18,7 +18,9 @@ const create = async (req, res) => {
 const getUserLists = async (req, res) => {
     try {
         const { userId } = req.params;
-        const lists = await getListsByUser(userId);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const lists = await getListsByUser(userId, page, limit);
         res.json(lists);
     } catch (error) {
         return errorHandlerController("Error obteniendo listas", 500, res, error);

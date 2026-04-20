@@ -9,10 +9,11 @@ const createList = async (listData) => {
     return result.insertId;
 };
 
-const getListsByUser = async (userId) => {
+const getListsByUser = async (userId, page = 1, limit = 20) => {
+    const offset = (page - 1) * limit;
     const [rows] = await pool.query(
-        "SELECT * FROM lists WHERE id_user = ? ORDER BY created_at DESC", 
-        [userId]
+        "SELECT * FROM lists WHERE id_user = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+        [userId, limit, offset]
     );
     return rows;
 };

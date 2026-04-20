@@ -21,7 +21,9 @@ const addReview = async (req, res) => {
 const getGameReviews = async (req, res) => {
     try {
         const { gameId } = req.params;
-        const reviews = await getReviewsByGame(gameId);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const reviews = await getReviewsByGame(gameId, page, limit);
         res.json(reviews);
     } catch (error) {
         return errorHandlerController("Error obteniendo reseñas", 500, res, error);
