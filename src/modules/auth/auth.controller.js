@@ -98,7 +98,7 @@ const logoutController = async (req, res) => {
 const refreshController = async (req, res) => {
     try {
         const user = req.user;
-        const newToken = generateToken({ id_user: user.id_user });
+        const newToken = generateToken({ id_user: user.id_user, role: user.role });
         
         res.cookie("token", newToken,   {
             ...cookieOptions,
