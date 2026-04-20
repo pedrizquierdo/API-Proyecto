@@ -40,8 +40,13 @@ const getOneList = async (req, res) => {
 
 const addGame = async (req, res) => {
     try {
+        const { id_user } = req.user;
         const { listId } = req.params;
         const { gameId, comment } = req.body;
+
+        const list = await getListDetails(listId);
+        if (!list) return errorHandlerController("Lista no encontrada", 404, res);
+        if (list.id_user !== id_user) return errorHandlerController("No tienes permiso para modificar esta lista", 403, res);
 
         await addGameToList(listId, gameId, comment);
         res.json({ message: "Juego agregado a la lista" });
