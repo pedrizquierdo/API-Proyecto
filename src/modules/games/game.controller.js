@@ -30,8 +30,7 @@ const getTrending = async (req, res) => {
 
         res.json(trending);
     } catch (error) {
-        console.error("Error en getTrending:", error);
-        res.status(500).json({ message: "Error obteniendo tendencias" });
+        errorHandlerController("Error obteniendo tendencias", 500, res, error);
     }
 };
 
@@ -108,8 +107,7 @@ const getNewReleases = async (req, res) => {
 
         res.json(newGames);
     } catch (error) {
-        console.error("Error en getNewReleases:", error);
-        res.status(500).json({ message: "Error obteniendo lanzamientos" });
+        errorHandlerController("Error obteniendo lanzamientos", 500, res, error);
     }
 };
 
