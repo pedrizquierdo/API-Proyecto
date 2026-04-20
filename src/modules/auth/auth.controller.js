@@ -39,11 +39,9 @@ const registerController = async (req, res) => {
         });
 
         res.status(201).json({
-            message: "Usuario creado y logueado exitosamente", 
-            id,
-            token,
+            message: "Usuario creado y logueado exitosamente",
             user: { id: id, username: username }
-        }); 
+        });
 
     } catch (error) {
         return errorHandlerController("Error al registrar el usuario", 500, res, error);
@@ -79,9 +77,8 @@ const loginController = async (req, res) => {
             maxAge: 30 * 24 * 60 * 60 * 1000 // 30 días
         });
         res.json({
-            message: "Inicio de sesión exitoso", 
-            token,
-            user: { id: user.id_user, username: user.username } 
+            message: "Inicio de sesión exitoso",
+            user: { id: user.id_user, username: user.username }
         });
     } catch (error) {
         return errorHandlerController("Error al iniciar sesión", 500, res, error);
