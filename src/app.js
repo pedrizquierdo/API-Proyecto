@@ -59,5 +59,5 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en el puerto: ${PORT}`);
+  if (process.env.NODE_ENV !== 'production') console.log(`🚀 Servidor corriendo en el puerto: ${PORT}`);
 });

@@ -16,7 +16,7 @@ const getTrending = async (req, res) => {
         let trending = await getTrendingGames(limit);
 
         if (trending.length < limit) {
-            console.log(`Cache local insuficiente (${trending.length}/${limit}). Consultando IGDB...`);
+            if (process.env.NODE_ENV !== 'production') console.log(`Cache local insuficiente (${trending.length}/${limit}). Consultando IGDB...`);
             
             const freshGames = await igdbService.getTrendingGames(limit);
             
@@ -42,7 +42,7 @@ const search = async (req, res) => {
     }
 
     try {
-        console.log(`Buscando: ${q}`);
+        if (process.env.NODE_ENV !== 'production') console.log(`Buscando: ${q}`);
 
         // PASO A: Buscamos en IGDB (Siempre priorizamos datos frescos para búsqueda)
         const igdbResults = await igdbService.searchGame(q);
@@ -53,7 +53,7 @@ const search = async (req, res) => {
             const savePromises = igdbResults.map(game => createOrUpdateGame(game));
             await Promise.all(savePromises);
             
-            console.log(`Se cachearon ${igdbResults.length} juegos desde IGDB.`);
+            if (process.env.NODE_ENV !== 'production') console.log(`Se cachearon ${igdbResults.length} juegos desde IGDB.`);
             return res.json(igdbResults);
         }
 
@@ -93,7 +93,7 @@ const getNewReleases = async (req, res) => {
         let newGames = await getNewGamesLocal(limit);
 
         if (newGames.length < limit) {
-            console.log("Pocos juegos nuevos en local. Consultando IGDB...");
+            if (process.env.NODE_ENV !== 'production') console.log("Pocos juegos nuevos en local. Consultando IGDB...");
             const freshGames = await igdbService.getNewReleases(limit);
             
             if (freshGames.length > 0) {

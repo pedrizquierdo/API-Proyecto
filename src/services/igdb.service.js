@@ -42,7 +42,7 @@ class IgdbService {
             limit ${limit};
         `;
 
-        console.log("Query Developer:", queryBody);
+        if (process.env.NODE_ENV !== 'production') console.log("Query Developer:", queryBody);
 
         try {
             const response = await axios.post(
@@ -58,7 +58,7 @@ class IgdbService {
                 }
             );
 
-            console.log(`IGDB Respondió con ${response.data.length} juegos.`);
+            if (process.env.NODE_ENV !== 'production') console.log(`IGDB Respondió con ${response.data.length} juegos.`);
             return this._formatGames(response.data);
         } catch (error) {
             console.error(' ERROR AXIOS:', error.response?.status, error.response?.data || error.message);
