@@ -63,11 +63,12 @@ const search = async (req, res) => {
         res.json(localResults);
 
     } catch (error) {
-        errorHandlerController("Error buscando juegos", 500, res, error);
-
-        // Fallback adicional en caso de error
-        const localFallback = await searchGamesByTitle(q);
-        res.json(localFallback);
+        try {
+            const localFallback = await searchGamesByTitle(q);
+            return res.json(localFallback);
+        } catch (fallbackError) {
+            errorHandlerController("Error buscando juegos", 500, res, error);
+        }
     }
 };
 
