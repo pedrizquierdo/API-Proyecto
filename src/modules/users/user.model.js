@@ -98,6 +98,7 @@ const updateVisibility = async (id, visibility) => {
 };
 
 const searchUsersByUsername = async (query) => {
+    if (query.length < 2) return [];
     const [rows] = await pool.query(
         "SELECT id_user, username, avatar_url FROM users WHERE username LIKE ? LIMIT 5",
         [`%${query}%`]
