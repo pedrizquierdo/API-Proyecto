@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { create, getUserLists, getOneList, addGame, removeList } from './lists.controller.js';
+import { create, getUserLists, getOneList, addGame, removeList, validateCreateList } from './lists.controller.js';
 import { verifyToken } from '../../middlewares/authMiddleware.js';
 
 const router = Router();
 
-router.post('/', verifyToken, create);
+router.post('/', verifyToken, validateCreateList, create);
 
 router.get('/user/:userId', getUserLists);
 

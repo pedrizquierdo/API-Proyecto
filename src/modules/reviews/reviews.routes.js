@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { addReview, getGameReviews, getUserReviews, removeReview, reportReview, getReported, approveReview } from './reviews.controller.js';
+import { addReview, getGameReviews, getUserReviews, removeReview, reportReview, getReported, approveReview, validateAddReview } from './reviews.controller.js';
 import { verifyToken, verifyAdmin } from '../../middlewares/authMiddleware.js';
 
 const router = Router();
 
-router.post('/', verifyToken, addReview);
+router.post('/', verifyToken, validateAddReview, addReview);
 
 router.get('/game/:gameId', getGameReviews);
 

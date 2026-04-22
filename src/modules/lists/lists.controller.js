@@ -1,12 +1,18 @@
+import { z } from "zod";
 import { createList, getListsByUser, getListDetails, addGameToList, deleteList } from './lists.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
+import validate from '../../utils/validate.js';
+
+export const validateCreateList = validate(z.object({
+    title: z.string().min(1, "El título es obligatorio").max(100, "El título no puede superar 100 caracteres"),
+    description: z.string().max(500, "La descripción no puede superar 500 caracteres").optional(),
+    is_public: z.boolean().optional(),
+}));
 
 const create = async (req, res) => {
     try {
         const { id_user } = req.user;
         const { title, description, is_public, list_type } = req.body;
-
-        if (!title) return errorHandlerController("El título es obligatorio", 400, res);
 
         const id = await createList({ id_user, title, description, is_public, list_type });
         res.status(201).json({ message: "Lista creada", id });

@@ -1,16 +1,26 @@
+import { z } from "zod";
 import { getUserByEmail, createUser, getUserByUsernameForAuth, getUserByUsername } from "../users/user.model.js";
 import { generateToken, generateRefreshToken } from "../../utils/jwt.js";
 import { hashPassword, comparePassword } from "../../utils/hash.js";
 import { errorHandlerController } from "../../helpers/errorHandlerController.js";
 import { cookieOptions, clearOptions } from "../../config/cookies.js";
+import validate from "../../utils/validate.js";
+
+export const validateRegister = validate(z.object({
+    username: z.string().min(3, "El username debe tener al menos 3 caracteres").max(30, "El username no puede superar 30 caracteres"),
+    email: z.string().email("El email no es válido"),
+    password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+}));
+
+export const validateLogin = validate(z.object({
+    username: z.string().min(1, "El username es obligatorio"),
+    password: z.string().min(1, "La contraseña es obligatoria"),
+}));
 
 
 
 const registerController = async (req, res) => {
     const {username, email, password} = req.body;
-    if (!username || !email || !password) {
-        return errorHandlerController("Todos los campos son obligatorios", 400, res);
-    }
     try {
         const emailExists = await getUserByEmail(email);
         if (emailExists) {
@@ -51,9 +61,6 @@ const registerController = async (req, res) => {
 
 const loginController = async (req, res) => {
     const {username, password} = req.body;
-    if (!username || !password) {
-        return errorHandlerController("Todos los campos son obligatorios", 400, res);
-    }
     try {
         const user = await getUserByUsernameForAuth(username);
         if (!user) {

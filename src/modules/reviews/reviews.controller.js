@@ -1,15 +1,19 @@
+import { z } from "zod";
 import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports } from './reviews.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
+import validate from '../../utils/validate.js';
+
+export const validateAddReview = validate(z.object({
+    id_game: z.number().int().positive("id_game debe ser un entero positivo"),
+    content: z.string().min(10, "La reseña debe tener al menos 10 caracteres").max(2000, "La reseña no puede superar 2000 caracteres"),
+    has_spoilers: z.boolean().optional(),
+}));
 
 
 const addReview = async (req, res) => {
     try {
         const { id_user } = req.user;
         const { id_game, content, has_spoilers } = req.body;
-
-        if (!id_game || !content) {
-            return errorHandlerController("Faltan datos (id_game, content)", 400, res);
-        }
 
         const reviewId = await createReview({ id_user, id_game, content, has_spoilers });
         res.status(201).json({ message: "Reseña publicada", id: reviewId });
