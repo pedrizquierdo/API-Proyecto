@@ -11,21 +11,28 @@ import {
 } from './game.model.js';
 import igdbService from '../../services/igdb.service.js';
 
+const igdbCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000;
+
 const getTrending = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 10;
         let trending = await getTrendingGames(limit);
 
         if (trending.length < limit) {
+            const cached = igdbCache.get('trending');
+            if (cached && Date.now() - cached.ts < CACHE_TTL) return res.json(cached.data);
+
             if (process.env.NODE_ENV !== 'production') console.log(`Cache local insuficiente (${trending.length}/${limit}). Consultando IGDB...`);
-            
+
             const freshGames = await igdbService.getTrendingGames(limit);
-            
+
             for (const game of freshGames) {
                 game.is_trending = true;
                 await createOrUpdateGame(game);
             }
-            
+
+            igdbCache.set('trending', { data: freshGames, ts: Date.now() });
             trending = freshGames;
         }
 
@@ -94,14 +101,18 @@ const getNewReleases = async (req, res) => {
         let newGames = await getNewGamesLocal(limit);
 
         if (newGames.length < limit) {
+            const cached = igdbCache.get('new_releases');
+            if (cached && Date.now() - cached.ts < CACHE_TTL) return res.json(cached.data);
+
             if (process.env.NODE_ENV !== 'production') console.log("Pocos juegos nuevos en local. Consultando IGDB...");
             const freshGames = await igdbService.getNewReleases(limit);
-            
+
             if (freshGames.length > 0) {
                 for (const game of freshGames) {
                     await createOrUpdateGame(game);
                 }
 
+                igdbCache.set('new_releases', { data: freshGames, ts: Date.now() });
                 newGames = freshGames;
             }
         }
