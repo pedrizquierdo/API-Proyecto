@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports } from './reviews.model.js';
+import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount } from './reviews.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 import validate from '../../utils/validate.js';
 
@@ -31,7 +31,8 @@ const getGameReviews = async (req, res) => {
         const { gameId } = req.params;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
-        const reviews = await getReviewsByGame(gameId, page, limit);
+        const userId = req.user?.id_user ?? null;
+        const reviews = await getReviewsByGame(gameId, page, limit, userId);
         res.json(reviews);
     } catch (error) {
         return errorHandlerController("Error obteniendo reseñas", 500, res, error);
@@ -102,4 +103,25 @@ const reportReview = async (req, res) => {
     }
 };
 
-export { addReview, getGameReviews, getUserReviews, removeReview, reportReview, getReported, approveReview };
+const toggleReviewLike = async (req, res) => {
+    try {
+        const { id_user } = req.user;
+        const { reviewId } = req.params;
+
+        const likeResult = await likeReview(id_user, reviewId);
+        let liked;
+        if (likeResult.affectedRows === 0) {
+            await unlikeReview(id_user, reviewId);
+            liked = false;
+        } else {
+            liked = true;
+        }
+
+        const count = await getReviewLikesCount(reviewId);
+        res.json({ liked, count });
+    } catch (error) {
+        return errorHandlerController("Error al dar like a la reseña", 500, res, error);
+    }
+};
+
+export { addReview, getGameReviews, getUserReviews, removeReview, reportReview, getReported, approveReview, toggleReviewLike };

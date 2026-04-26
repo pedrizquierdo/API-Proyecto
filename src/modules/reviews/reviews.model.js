@@ -9,16 +9,24 @@ const createReview = async (reviewData) => {
     return result.insertId;
 };
 
-const getReviewsByGame = async (gameId, page = 1, limit = 20) => {
+const getReviewsByGame = async (gameId, page = 1, limit = 20, userId = null) => {
     const offset = (page - 1) * limit;
+    const isLikedSelect = userId != null
+        ? ', (SELECT COUNT(*) > 0 FROM likes WHERE id_review = r.id_review AND id_user = ?) as is_liked'
+        : '';
+    const params = userId != null
+        ? [userId, gameId, limit, offset]
+        : [gameId, limit, offset];
     const [rows] = await pool.query(`
-        SELECT r.*, u.username, u.avatar_url
+        SELECT r.*, u.username, u.avatar_url,
+            (SELECT COUNT(*) FROM likes WHERE id_review = r.id_review) as likes_count
+            ${isLikedSelect}
         FROM reviews r
         JOIN users u ON r.id_user = u.id_user
         WHERE r.id_game = ?
         ORDER BY r.created_at DESC
         LIMIT ? OFFSET ?
-    `, [gameId, limit, offset]);
+    `, params);
     return rows;
 };
 
@@ -84,4 +92,28 @@ const dismissReports = async (reviewId) => {
 
 
 
-export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports };
+const likeReview = async (userId, reviewId) => {
+    const [result] = await pool.query(
+        "INSERT IGNORE INTO likes (id_user, id_review) VALUES (?, ?)",
+        [userId, reviewId]
+    );
+    return result;
+};
+
+const unlikeReview = async (userId, reviewId) => {
+    const [result] = await pool.query(
+        "DELETE FROM likes WHERE id_user = ? AND id_review = ?",
+        [userId, reviewId]
+    );
+    return result;
+};
+
+const getReviewLikesCount = async (reviewId) => {
+    const [[{ count }]] = await pool.query(
+        "SELECT COUNT(*) as count FROM likes WHERE id_review = ?",
+        [reviewId]
+    );
+    return count;
+};
+
+export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount };

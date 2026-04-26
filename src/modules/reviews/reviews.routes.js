@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { addReview, getGameReviews, getUserReviews, removeReview, reportReview, getReported, approveReview, validateAddReview, validateReport } from './reviews.controller.js';
+import { addReview, getGameReviews, getUserReviews, removeReview, reportReview, getReported, approveReview, toggleReviewLike, validateAddReview, validateReport } from './reviews.controller.js';
 import { verifyToken, verifyAdmin } from '../../middlewares/authMiddleware.js';
 
 const router = Router();
@@ -12,6 +12,7 @@ router.get('/user/:userId', getUserReviews);
 
 router.delete('/:reviewId', verifyToken, removeReview);
 
+router.post('/:reviewId/like', verifyToken, toggleReviewLike);
 router.post('/:reviewId/report', verifyToken, validateReport, reportReview);
 
 router.get('/reported', verifyToken, verifyAdmin, getReported);
