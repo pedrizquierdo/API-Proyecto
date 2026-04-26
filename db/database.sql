@@ -45,7 +45,7 @@ CREATE TABLE user_games (
     id_activity INT PRIMARY KEY AUTO_INCREMENT,
     id_user INT NOT NULL,
     id_game INT NOT NULL,
-    status ENUM('played', 'playing', 'plan_to_play', 'dropped') NOT NULL,
+    status ENUM('played', 'playing', 'plan_to_play', 'dropped') DEFAULT 'played',
     is_favorite BOOLEAN DEFAULT FALSE,
     rating DECIMAL(3, 1),
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
