@@ -18,7 +18,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/app.js",
-    "dev": "node --watch src/app.js"
+    "dev": "node --watch src/app.js",
+    "seed": "node scripts/seed-games.js"
   },
   "keywords": [
     "API",
