@@ -17,6 +17,8 @@ import { verifyToken } from "../../middlewares/authMiddleware.js";
 
 const router = Router();
 
+router.get("/search", searchUsersController);
+router.get("/follow/:id/check", verifyToken, checkFollowController);
 router.get("/me", verifyToken, getUserInfoController);
 router.get("/:id/followers", getFollowersController);
 router.get("/:id/following", getFollowingController);
@@ -24,9 +26,7 @@ router.put("/profile", verifyToken, validateUpdateProfile, updateProfileControll
 router.put("/softdelete", verifyToken, softDeleteUserController);
 router.put("/active", verifyToken, activateUserController);
 router.post("/follow/:id", verifyToken, followUserController);
-router.get("/:username", getPublicProfileController);
 router.delete("/follow/:id", verifyToken, unfollowUserController);
-router.get("/search", searchUsersController); 
-router.get("/follow/:id/check", verifyToken, checkFollowController);
+router.get("/:username", getPublicProfileController);
 
 export default router;
