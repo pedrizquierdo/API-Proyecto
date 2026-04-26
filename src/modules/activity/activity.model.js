@@ -1,50 +1,37 @@
 import pool from '../../config/db.js';
 
 const upsertActivity = async (userId, gameId, activityData) => {
-
     const statusProvided = activityData.status !== undefined;
-    const status = activityData.status || null; 
-
-    const rating = activityData.rating !== undefined ? activityData.rating : null;
-
-    let incomingLike = undefined;
-    if (activityData.isLiked !== undefined) incomingLike = activityData.isLiked;
-    else if (activityData.is_liked !== undefined) incomingLike = activityData.is_liked;
-    
-    const isLiked = incomingLike !== undefined ? (incomingLike ? 1 : 0) : null;
-
-    const isFavRaw = activityData.is_favorite !== undefined ? activityData.is_favorite : null;
-    const isFav = isFavRaw !== null ? (isFavRaw ? 1 : 0) : null;
-    const defStatus = status; 
-    const defRating = rating !== null ? rating : null;
-    const defFav = isFav !== null ? isFav : 0;
-    const defLiked = isLiked !== null ? isLiked : 0;
+    const status = activityData.status ?? null;
+    const rating = activityData.rating ?? null;
+    const isLiked = activityData.is_liked != null ? (activityData.is_liked ? 1 : 0) : null;
+    const isFav = activityData.is_favorite != null ? (activityData.is_favorite ? 1 : 0) : null;
 
     const query = `
         INSERT INTO user_games (id_user, id_game, status, rating, is_favorite, is_liked, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
         ON DUPLICATE KEY UPDATE
-            status = IF(?, ?, status),      
+            status = IF(?, ?, status),
             rating = COALESCE(?, rating),
             is_favorite = COALESCE(?, is_favorite),
-            is_liked = COALESCE(?, is_liked),       
+            is_liked = COALESCE(?, is_liked),
             updated_at = NOW();
     `;
 
     const [result] = await pool.query(query, [
-        userId, 
-        gameId, 
-        defStatus, 
-        defRating, 
-        defFav, 
-        defLiked,
-        statusProvided, 
-        status,        
+        userId,
+        gameId,
+        status,
+        rating,
+        isFav ?? 0,
+        isLiked ?? 0,
+        statusProvided,
+        status,
         rating,
         isFav,
-        isLiked
+        isLiked,
     ]);
-    
+
     return result;
 };
 

@@ -9,6 +9,10 @@ export const validateAddReview = validate(z.object({
     has_spoilers: z.boolean().optional(),
 }));
 
+export const validateReport = validate(z.object({
+    reason: z.string().min(1, "Debes indicar un motivo").max(500, "El motivo no puede superar 500 caracteres").trim(),
+}));
+
 
 const addReview = async (req, res) => {
     try {
@@ -86,13 +90,9 @@ const approveReview = async (req, res) => {
 
 const reportReview = async (req, res) => {
     try {
-        const { id_user } = req.user; 
-        const { reviewId } = req.params; 
-        const { reason } = req.body; 
-
-        if (!reason) {
-            return errorHandlerController("Debes indicar un motivo", 400, res);
-        }
+        const { id_user } = req.user;
+        const { reviewId } = req.params;
+        const { reason } = req.body;
 
         await createReport(id_user, reviewId, reason);
         

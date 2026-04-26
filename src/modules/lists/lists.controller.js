@@ -7,6 +7,7 @@ export const validateCreateList = validate(z.object({
     title: z.string().min(1, "El título es obligatorio").max(100, "El título no puede superar 100 caracteres"),
     description: z.string().max(500, "La descripción no puede superar 500 caracteres").optional(),
     is_public: z.boolean().optional(),
+    list_type: z.enum(['collection', 'ranking', 'wishlist']).optional(),
 }));
 
 const create = async (req, res) => {

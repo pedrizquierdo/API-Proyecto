@@ -17,7 +17,7 @@ const corsOptions = {
             return callback(null, true);
         }
 
-        return callback(new Error(`Not allowed by CORS: ${origin}`));
+        return callback(new Error("Not allowed by CORS"));
     },
 
     credentials: true, // Habilitar cookies cross-origin

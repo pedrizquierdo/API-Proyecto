@@ -8,6 +8,23 @@ class IgdbService {
         this.clientSecret = process.env.TWITCH_CLIENT_SECRET;
     }
 
+    async _request(queryBody) {
+        const token = await this._getAuthToken();
+        const response = await axios.post(
+            'https://api.igdb.com/v4/games',
+            queryBody,
+            {
+                headers: {
+                    'Client-ID': this.clientId,
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                    'Content-Type': 'text/plain'
+                }
+            }
+        );
+        return response.data;
+    }
+
     async _getAuthToken() {
         if (this.accessToken && Date.now() < this.tokenExpiry) {
             return this.accessToken;
@@ -32,64 +49,34 @@ class IgdbService {
     }
 
     async getTrendingGames(limit = 10) {
-        const token = await this._getAuthToken();
-
- 
         const queryBody = `
-            fields name, slug, cover.url, first_release_date, total_rating_count, summary, involved_companies.company.name, screenshots.url; 
-            sort total_rating_count desc; 
-            where cover != null & total_rating_count > 10; 
+            fields name, slug, cover.url, first_release_date, total_rating_count, summary, involved_companies.company.name, screenshots.url;
+            sort total_rating_count desc;
+            where cover != null & total_rating_count > 10;
             limit ${limit};
         `;
 
-        if (process.env.NODE_ENV !== 'production') console.log("Query Developer:", queryBody);
-
         try {
-            const response = await axios.post(
-                'https://api.igdb.com/v4/games',
-                queryBody,
-                {
-                    headers: {
-                        'Client-ID': this.clientId,
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/json',
-                        'Content-Type': 'text/plain'
-                    }
-                }
-            );
-
-            if (process.env.NODE_ENV !== 'production') console.log(`IGDB Respondió con ${response.data.length} juegos.`);
-            return this._formatGames(response.data);
+            const data = await this._request(queryBody);
+            if (process.env.NODE_ENV !== 'production') console.log(`IGDB Respondió con ${data.length} juegos.`);
+            return this._formatGames(data);
         } catch (error) {
-            console.error(' ERROR AXIOS:', error.response?.status, error.response?.data || error.message);
+            console.error('ERROR AXIOS:', error.response?.status, error.response?.data || error.message);
             return [];
         }
     }
 
-    async getNewReleases(limit = 10) {
-        const token = await this._getAuthToken();
+    async getNewReleases(limit = 12) {
         const now = Math.floor(Date.now() / 1000);
         const queryBody = `
             fields name, slug, cover.url, first_release_date, total_rating_count, summary, involved_companies.company.name, screenshots.url;
-            sort first_release_date desc; 
+            sort first_release_date desc;
             where first_release_date < ${now} & cover != null;
             limit ${limit};
         `;
 
         try {
-            const response = await axios.post(
-                'https://api.igdb.com/v4/games',
-                queryBody,
-                {
-                    headers: {
-                        'Client-ID': this.clientId,
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/json',
-                        'Content-Type': 'text/plain'
-                    }
-                }
-            );
-            return this._formatGames(response.data);
+            return this._formatGames(await this._request(queryBody));
         } catch (error) {
             console.error('Error New Releases:', error.message);
             return [];
@@ -97,29 +84,16 @@ class IgdbService {
     }
 
     async searchGame(query) {
-        const token = await this._getAuthToken();
+        const safeQuery = query.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        const queryBody = `
+            search "${safeQuery}";
+            fields name, slug, cover.url, first_release_date, total_rating_count, involved_companies.company.name, summary;
+            where category = (0, 8, 9);
+            limit 10;
+        `;
 
         try {
-            const queryBody = `
-                search "${query}"; 
-                fields name, slug, cover.url, first_release_date, total_rating_count, involved_companies.company.name, summary; 
-                where category = (0, 8, 9);
-                limit 10;
-            `;
-
-            const response = await axios.post(
-                'https://api.igdb.com/v4/games',
-                queryBody,
-                {
-                    headers: {
-                        'Client-ID': this.clientId,
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/json',
-                        'Content-Type': 'text/plain'
-                    }
-                }
-            );
-            return this._formatGames(response.data);
+            return this._formatGames(await this._request(queryBody));
         } catch (error) {
             console.error('Error buscando en IGDB:', error.message);
             return [];

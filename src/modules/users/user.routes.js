@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { 
-    getUserInfoController, 
-    softDeleteUserController, 
+import {
+    getUserInfoController,
+    softDeleteUserController,
     activateUserController,
-    updateProfileController, 
-    getPublicProfileController, 
+    updateProfileController,
+    validateUpdateProfile,
+    getPublicProfileController,
     followUserController,
     unfollowUserController,
     checkFollowController,
@@ -19,7 +20,7 @@ const router = Router();
 router.get("/me", verifyToken, getUserInfoController);
 router.get("/:id/followers", getFollowersController);
 router.get("/:id/following", getFollowingController);
-router.put("/profile", verifyToken, updateProfileController);
+router.put("/profile", verifyToken, validateUpdateProfile, updateProfileController);
 router.put("/softdelete", verifyToken, softDeleteUserController);
 router.put("/active", verifyToken, activateUserController);
 router.post("/follow/:id", verifyToken, followUserController);

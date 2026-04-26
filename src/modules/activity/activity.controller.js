@@ -6,6 +6,7 @@ import {
     getFriendsFeed,
     getAllUserGames
 } from './activity.model.js';
+import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 
 const logActivity = async (req, res) => {
     try {
@@ -30,8 +31,7 @@ const logActivity = async (req, res) => {
         res.json({ message: "Actividad actualizada", gameId });
 
     } catch (error) {
-        console.error("Error logging activity:", error);
-        res.status(500).json({ message: "Error al guardar actividad" });
+        return errorHandlerController("Error al guardar actividad", 500, res, error);
     }
 };
 
@@ -41,7 +41,7 @@ const getMyWatchlist = async (req, res) => {
         const games = await getWatchlist(userId);
         res.json(games);
     } catch (error) {
-        res.status(500).json({ message: "Error obteniendo watchlist" });
+        return errorHandlerController("Error obteniendo watchlist", 500, res, error);
     }
 };
 
@@ -62,8 +62,7 @@ const checkStatus = async (req, res) => {
             res.json({ status: null, is_favorite: false, is_liked: false, rating: null });
         }
     } catch (error) {
-        console.error("Error checkStatus:", error);
-        res.status(500).json({ message: "Error verificando estado" });
+        return errorHandlerController("Error verificando estado", 500, res, error);
     }
 };
 
@@ -73,8 +72,7 @@ const getFeed = async (req, res) => {
         const feed = await getFriendsFeed(userId, 10);
         res.json(feed);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error cargando feed de amigos" });
+        return errorHandlerController("Error cargando feed de amigos", 500, res, error);
     }
 };
 
@@ -84,8 +82,7 @@ const getUserLibrary = async (req, res) => {
         const games = await getAllUserGames(userId);
         res.json(games);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error obteniendo librería completa" });
+        return errorHandlerController("Error obteniendo librería completa", 500, res, error);
     }
 };
 

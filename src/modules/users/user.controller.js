@@ -1,5 +1,13 @@
+import { z } from "zod";
 import { getUserInfo, softDeleteUser, activateUser, updateUserProfile, getUserByUsername, followUser, unfollowUser, checkFollowStatus, searchUsersByUsername, getFollowersModel, getFollowingModel } from "./user.model.js";
 import { errorHandlerController } from "../../helpers/errorHandlerController.js";
+import validate from "../../utils/validate.js";
+
+export const validateUpdateProfile = validate(z.object({
+    bio: z.string().max(300, "La bio no puede superar 300 caracteres").optional(),
+    avatar_url: z.string().url("La URL del avatar no es válida").max(500).optional(),
+    pronouns: z.string().max(30, "Los pronombres no pueden superar 30 caracteres").optional(),
+}));
 
 const getUserInfoController = async (req, res) => {
     const { id_user } = req.user;
