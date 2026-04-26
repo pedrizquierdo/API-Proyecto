@@ -2,11 +2,13 @@ import { z } from "zod";
 import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount } from './reviews.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 import validate from '../../utils/validate.js';
+import { upsertActivity } from '../activity/activity.model.js';
 
 export const validateAddReview = validate(z.object({
     id_game: z.number().int().positive("id_game debe ser un entero positivo"),
     content: z.string().min(10, "La reseña debe tener al menos 10 caracteres").max(2000, "La reseña no puede superar 2000 caracteres"),
     has_spoilers: z.boolean().optional(),
+    rating: z.number().min(0).max(5).multipleOf(0.5).optional(),
 }));
 
 export const validateReport = validate(z.object({
@@ -17,9 +19,14 @@ export const validateReport = validate(z.object({
 const addReview = async (req, res) => {
     try {
         const { id_user } = req.user;
-        const { id_game, content, has_spoilers } = req.body;
+        const { id_game, content, has_spoilers, rating } = req.body;
 
         const reviewId = await createReview({ id_user, id_game, content, has_spoilers });
+
+        if (rating !== undefined) {
+            await upsertActivity(id_user, id_game, { rating });
+        }
+
         res.status(201).json({ message: "Reseña publicada", id: reviewId });
     } catch (error) {
         return errorHandlerController("Error al publicar reseña", 500, res, error);
