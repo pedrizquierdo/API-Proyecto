@@ -81,6 +81,17 @@ const getGameByIgdbId = async (igdbId) => {
     return rows[0];
 };
 
+const getRandomGame = async (excludeIds = []) => {
+    const exclusion = excludeIds.length > 0
+        ? `AND id_game NOT IN (${excludeIds.map(() => '?').join(',')})`
+        : '';
+    const [rows] = await pool.query(
+        `SELECT * FROM games WHERE cover_url IS NOT NULL ${exclusion} ORDER BY RAND() LIMIT 1`,
+        excludeIds
+    );
+    return rows[0];
+};
+
 export {
     getGameById,
     getGameBySlug,
@@ -88,5 +99,6 @@ export {
     searchGamesByTitle,
     createOrUpdateGame,
     getGameByIgdbId,
-    getNewGamesLocal
+    getNewGamesLocal,
+    getRandomGame
 };

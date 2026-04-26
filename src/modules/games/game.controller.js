@@ -7,6 +7,7 @@ import {
     searchGamesByTitle,
     createOrUpdateGame,
     getGameByIgdbId,
+    getRandomGame,
 } from './game.model.js';
 import igdbService from '../../services/igdb.service.js';
 
@@ -122,4 +123,17 @@ const getBySlug = async (req, res) => {
         errorHandlerController("Error obteniendo detalles del juego", 500, res, error);
     }
 };
-export { getTrending, search, getById, getBySlug, getNewReleases };
+const getRandom = async (req, res) => {
+    try {
+        const excludeIds = req.query.excludeIds
+            ? req.query.excludeIds.split(',').map(Number).filter(Boolean)
+            : [];
+        const game = await getRandomGame(excludeIds);
+        if (!game) return res.status(404).json({ message: "No se encontró ningún juego" });
+        res.json(game);
+    } catch (error) {
+        errorHandlerController("Error obteniendo juego aleatorio", 500, res, error);
+    }
+};
+
+export { getTrending, search, getById, getBySlug, getNewReleases, getRandom };
