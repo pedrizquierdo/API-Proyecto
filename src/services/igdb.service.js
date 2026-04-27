@@ -85,15 +85,38 @@ class IgdbService {
 
     async searchGame(query) {
         const safeQuery = query.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-        const queryBody = `
-            search "${safeQuery}";
-            fields name, slug, cover.url, first_release_date, total_rating_count, involved_companies.company.name, summary;
-            where category = (0, 8, 9);
-            limit 10;
-        `;
 
         try {
-            return this._formatGames(await this._request(queryBody));
+            const stepABody = `
+                search "${safeQuery}";
+                fields name, slug, cover.url, first_release_date, total_rating_count, involved_companies.company.name, summary;
+                where category = (0, 2, 8, 9) & cover != null;
+                limit 10;
+            `;
+            const stepA = this._formatGames(await this._request(stepABody));
+
+            if (process.env.NODE_ENV !== 'production') {
+                console.log(`Step A: ${stepA.length} results, Step B triggered: ${stepA.length < 3}`);
+            }
+
+            let stepB = [];
+            if (stepA.length < 3) {
+                const stepBBody = `
+                    fields name, slug, cover.url, first_release_date, total_rating_count, involved_companies.company.name, summary;
+                    where name ~ *"${safeQuery}"* & cover != null;
+                    limit 10;
+                `;
+                stepB = this._formatGames(await this._request(stepBBody));
+            }
+
+            const seen = new Set();
+            const combined = [...stepA, ...stepB].filter(g => {
+                if (seen.has(g.igdb_id)) return false;
+                seen.add(g.igdb_id);
+                return true;
+            });
+
+            return combined.slice(0, 10);
         } catch (error) {
             console.error('Error buscando en IGDB:', error.message);
             return [];
