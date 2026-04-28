@@ -83,39 +83,33 @@ class IgdbService {
         }
     }
 
-    async searchGame(query) {
+    async searchGame(query, limit = 10) {
         const safeQuery = query.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
         try {
-            // Paso A: substring exact match con filtro estricto de category.
-            // El operador name ~ no interfiere con where category, a diferencia de search "".
             const stepABody = `
                 fields name, slug, cover.url, first_release_date, total_rating_count, involved_companies.company.name, summary;
                 where name ~ *"${safeQuery}"* & category = (0, 8, 9, 10, 11) & cover != null;
                 sort total_rating_count desc;
-                limit 10;
+                limit ${limit};
             `;
             const stepA = this._formatGames(await this._request(stepABody));
 
-            if (process.env.NODE_ENV !== 'production') {
-                console.log(`[IGDB] Paso A "${query}": ${stepA.length} resultados`);
-                console.log(`[IGDB] Paso B triggered: ${stepA.length < 5}`);
-            }
-
-            // Paso B: fuzzy search de IGDB para cubrir abreviaciones y typos leves.
-            // Solo se ejecuta cuando Paso A no alcanza el umbral de calidad.
             let stepB = [];
             if (stepA.length < 5) {
                 const stepBBody = `
                     search "${safeQuery}";
                     fields name, slug, cover.url, first_release_date, total_rating_count, involved_companies.company.name, summary;
                     where category = (0, 8, 9, 10, 11) & cover != null;
-                    limit 10;
+                    limit ${limit};
                 `;
                 stepB = this._formatGames(await this._request(stepBBody));
             }
 
-            // Paso C: deduplicar, ordenar por popularidad y devolver los primeros 10.
+            if (process.env.NODE_ENV !== 'production') {
+                console.log(`[IGDB Search] "${query}" — PasoA: ${stepA.length}, PasoB: ${stepA.length < 5}`);
+            }
+
             const seen = new Set();
             const combined = [...stepA, ...stepB].filter(g => {
                 if (seen.has(g.igdb_id)) return false;
@@ -125,14 +119,55 @@ class IgdbService {
 
             combined.sort((a, b) => b.popularity - a.popularity);
 
-            if (process.env.NODE_ENV !== 'production') {
-                console.log(`[IGDB] Combined final: ${combined.length} resultados`);
-            }
-
-            return combined.slice(0, 10);
+            return combined.slice(0, limit);
         } catch (error) {
             console.error('Error buscando en IGDB:', error.message);
             return [];
+        }
+    }
+
+    async searchGamesPaginated(query, page = 1, limit = 24) {
+        const safeQuery = query.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+
+        try {
+            const stepABody = `
+                fields name, slug, cover.url, first_release_date, total_rating_count, involved_companies.company.name, summary;
+                where name ~ *"${safeQuery}"* & category = (0, 8, 9, 10, 11) & cover != null;
+                sort total_rating_count desc;
+                limit ${limit};
+            `;
+            const stepBBody = `
+                search "${safeQuery}";
+                fields name, slug, cover.url, first_release_date, total_rating_count, involved_companies.company.name, summary;
+                where category = (0, 8, 9, 10, 11) & cover != null;
+                limit ${limit};
+            `;
+
+            const [stepA, stepB] = await Promise.all([
+                this._request(stepABody).then(d => this._formatGames(d)),
+                this._request(stepBBody).then(d => this._formatGames(d)),
+            ]);
+
+            if (process.env.NODE_ENV !== 'production') {
+                console.log(`[IGDB Search] "${query}" — PasoA: ${stepA.length}, PasoB: ${stepB.length}`);
+            }
+
+            const seen = new Set();
+            const combined = [...stepA, ...stepB].filter(g => {
+                if (seen.has(g.igdb_id)) return false;
+                seen.add(g.igdb_id);
+                return true;
+            });
+
+            combined.sort((a, b) => b.popularity - a.popularity);
+
+            const offset = (page - 1) * limit;
+            const paginated = combined.slice(offset, offset + limit);
+
+            return { results: paginated, total: combined.length, page, limit };
+        } catch (error) {
+            console.error('Error en búsqueda paginada IGDB:', error.message);
+            return { results: [], total: 0, page, limit };
         }
     }
 

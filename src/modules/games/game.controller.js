@@ -124,6 +124,24 @@ const getNewReleases = async (req, res) => {
 };
 
 
+const searchPage = async (req, res) => {
+    const { q } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 24;
+
+    if (!q) {
+        return res.status(400).json({ message: 'Se requiere término de búsqueda' });
+    }
+
+    try {
+        const data = await igdbService.searchGamesPaginated(q, page, limit);
+        data.results.forEach(game => createOrUpdateGame(game).catch(() => {}));
+        res.json(data);
+    } catch (error) {
+        errorHandlerController('Error en búsqueda paginada', 500, res, error);
+    }
+};
+
 const getBySlug = async (req, res) => {
     const { slug } = req.params;
     try {
@@ -147,4 +165,4 @@ const getRandom = async (req, res) => {
     }
 };
 
-export { getTrending, search, getById, getBySlug, getNewReleases, getRandom };
+export { getTrending, search, searchPage, getById, getBySlug, getNewReleases, getRandom };
