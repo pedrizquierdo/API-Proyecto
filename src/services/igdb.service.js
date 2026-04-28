@@ -83,57 +83,71 @@ class IgdbService {
         }
     }
 
-    _buildMultiWordQuery(query, limit) {
+    _buildSearchBodies(query, limit) {
         const normalized = query.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
-        const words = normalized.split(/\s+/).filter(w => w.length >= 2);
-        const conditions = words.map(w => `name ~ *"${w}"*`).join(' & ');
-        return `
+        const safeNormalized = normalized.replace(/"/g, '\\"');
+        const safeQuery = query.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+
+        // Strategy A: normalized substring — strips accents from query so "pokemon" matches "Pokémon"
+        const stepABody = `
             fields name, slug, cover.url, first_release_date,
                    total_rating_count, involved_companies.company.name, summary;
-            where ${conditions}
-              & category = (0, 8, 9, 10, 11)
-              & cover != null;
+            where name ~ *"${safeNormalized}"* & category = (0, 8, 9, 10, 11) & cover != null;
             sort total_rating_count desc;
             limit ${limit};
         `;
-    }
 
-    async searchGame(query, limit = 10) {
-        const safeQuery = query.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        // Strategy B: IGDB fuzzy search — no where clause (adding where breaks search operator)
+        // category field is fetched so we can filter client-side
         const stepBBody = `
             search "${safeQuery}";
             fields name, slug, cover.url, first_release_date,
-                   total_rating_count, involved_companies.company.name, summary;
-            where category = (0, 8, 9, 10, 11) & cover != null;
+                   total_rating_count, involved_companies.company.name, summary, category;
             limit ${limit};
         `;
 
+        return { stepABody, stepBBody };
+    }
+
+    _mergeResults(resA, resB, limit) {
+        const VALID_CATEGORIES = new Set([0, 1, 2, 3, 4, 8, 9, 10, 11]);
+
+        const stepA = resA.status === 'fulfilled' ? this._formatGames(resA.value) : [];
+        const stepBRaw = resB.status === 'fulfilled'
+            ? resB.value.filter(g => g.cover && (!g.category || VALID_CATEGORIES.has(g.category)))
+            : [];
+        const stepB = this._formatGames(stepBRaw);
+
+        if (process.env.NODE_ENV !== 'production') {
+            if (resA.status === 'rejected') console.warn('[IGDB] Estrategia A fallo:', resA.reason?.message);
+            if (resB.status === 'rejected') console.warn('[IGDB] Estrategia B fallo:', resB.reason?.message);
+        }
+
+        const seen = new Set();
+        const combined = [...stepA, ...stepB].filter(g => {
+            if (seen.has(g.igdb_id)) return false;
+            seen.add(g.igdb_id);
+            return true;
+        });
+        combined.sort((a, b) => b.popularity - a.popularity);
+        return combined.slice(0, limit);
+    }
+
+    async searchGame(query, limit = 10) {
+        const { stepABody, stepBBody } = this._buildSearchBodies(query, limit);
         try {
             const [resA, resB] = await Promise.allSettled([
-                this._request(this._buildMultiWordQuery(query, limit)),
+                this._request(stepABody),
                 this._request(stepBBody),
             ]);
 
-            const stepA = resA.status === 'fulfilled' ? this._formatGames(resA.value) : [];
-            const stepB = resB.status === 'fulfilled' ? this._formatGames(resB.value) : [];
-
             if (process.env.NODE_ENV !== 'production') {
-                console.log('[IGDB] Estrategia A "' + query + '": ' + stepA.length + ' resultados');
-                console.log('[IGDB] Estrategia B activada: ' + (stepA.length < 3));
-                if (resA.status === 'rejected') console.warn('[IGDB] Estrategia A fallo:', resA.reason?.message);
-                if (resB.status === 'rejected') console.warn('[IGDB] Estrategia B fallo:', resB.reason?.message);
+                const a = resA.status === 'fulfilled' ? resA.value.length : 0;
+                const b = resB.status === 'fulfilled' ? resB.value.length : 0;
+                console.log('[IGDB] "' + query + '" — A: ' + a + ', B: ' + b);
             }
 
-            const seen = new Set();
-            const combined = [...stepA, ...stepB].filter(g => {
-                if (seen.has(g.igdb_id)) return false;
-                seen.add(g.igdb_id);
-                return true;
-            });
-
-            combined.sort((a, b) => b.popularity - a.popularity);
-
-            return combined.slice(0, limit);
+            return this._mergeResults(resA, resB, limit);
         } catch (error) {
             console.error('Error buscando en IGDB:', error.message);
             return [];
@@ -141,22 +155,20 @@ class IgdbService {
     }
 
     async searchGamesPaginated(query, page = 1, limit = 24) {
-        const safeQuery = query.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-        const stepBBody = `
-            search "${safeQuery}";
-            fields name, slug, cover.url, first_release_date, total_rating_count, involved_companies.company.name, summary;
-            where category = (0, 8, 9, 10, 11) & cover != null;
-            limit ${limit};
-        `;
+        const { stepABody, stepBBody } = this._buildSearchBodies(query, limit);
 
         try {
             const [resA, resB] = await Promise.allSettled([
-                this._request(this._buildMultiWordQuery(query, limit)),
+                this._request(stepABody),
                 this._request(stepBBody),
             ]);
 
             const stepA = resA.status === 'fulfilled' ? this._formatGames(resA.value) : [];
-            const stepB = resB.status === 'fulfilled' ? this._formatGames(resB.value) : [];
+            const VALID_CATEGORIES = new Set([0, 1, 2, 3, 4, 8, 9, 10, 11]);
+            const stepBRaw = resB.status === 'fulfilled'
+                ? resB.value.filter(g => g.cover && (!g.category || VALID_CATEGORIES.has(g.category)))
+                : [];
+            const stepB = this._formatGames(stepBRaw);
 
             if (process.env.NODE_ENV !== 'production') {
                 console.log(`[IGDB Search] "${query}" — PasoA: ${stepA.length}, PasoB: ${stepB.length}`);
