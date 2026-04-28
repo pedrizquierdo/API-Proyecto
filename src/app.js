@@ -4,6 +4,7 @@ import cookie from "cookie-parser";
 import cors from "cors";
 import { corsOptions } from "./config/cors.js";
 import rateLimit from "express-rate-limit";
+import searchService from "./services/search.service.js";
 import authRoutes from "./modules/auth/auth.routes.js";
 import userRoutes from "./modules/users/user.routes.js";
 import gameRoutes from "./modules/games/game.routes.js";
@@ -58,6 +59,8 @@ app.use((err, req, res, next) => {
   });
 });
 
+searchService.search('__warmup__').catch(() => {});
+
 app.listen(PORT, () => {
-  if (process.env.NODE_ENV !== 'production') console.log(`🚀 Servidor corriendo en el puerto: ${PORT}`);
+  if (process.env.NODE_ENV !== 'production') console.log(`Servidor corriendo en el puerto: ${PORT}`);
 });

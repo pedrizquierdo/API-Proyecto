@@ -1,4 +1,5 @@
 import pool from '../../config/db.js';
+import searchService from '../../services/search.service.js';
 
 const getGameById = async (id) => {
     const [rows] = await pool.query(
@@ -71,9 +72,11 @@ const createOrUpdateGame = async (game) => {
         isTrendingValue 
     ]);
     
-    if (result.insertId) return result.insertId;
-    const existing = await getGameByIgdbId(game.igdb_id);
-    return existing.id_game;
+    const id_game = result.insertId || (await getGameByIgdbId(game.igdb_id)).id_game;
+
+    searchService.invalidateIndex();
+
+    return id_game;
 };
 
 const getGameByIgdbId = async (igdbId) => {
@@ -92,6 +95,13 @@ const getRandomGame = async (excludeIds = []) => {
     return rows[0];
 };
 
+const getAllGamesForIndex = async () => {
+    const [rows] = await pool.query(
+        'SELECT id_game, title, slug, cover_url, developer, release_date, popularity FROM games LIMIT 5000'
+    );
+    return rows;
+};
+
 export {
     getGameById,
     getGameBySlug,
@@ -100,5 +110,6 @@ export {
     createOrUpdateGame,
     getGameByIgdbId,
     getNewGamesLocal,
-    getRandomGame
+    getRandomGame,
+    getAllGamesForIndex,
 };

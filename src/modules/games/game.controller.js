@@ -10,6 +10,7 @@ import {
     getRandomGame,
 } from './game.model.js';
 import igdbService from '../../services/igdb.service.js';
+import searchService from '../../services/search.service.js';
 
 const igdbCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
@@ -43,38 +44,40 @@ const getTrending = async (req, res) => {
 };
 
 const search = async (req, res) => {
-    const { q } = req.query; // Obtiene ?q=zelda
+    const { q } = req.query;
 
     if (!q) {
-        return res.status(400).json({ message: "Se requiere un término de búsqueda" });
+        return res.status(400).json({ message: 'Se requiere término de búsqueda' });
     }
 
     try {
-        if (process.env.NODE_ENV !== 'production') console.log(`Buscando: ${q}`);
+        const localResults = await searchService.search(q, 10);
 
-        // PASO A: Buscamos en IGDB (Siempre priorizamos datos frescos para búsqueda)
+        if (localResults.length >= 3) {
+            if (process.env.NODE_ENV !== 'production')
+                console.log(`[Search] Fuse.js: ${localResults.length} resultados para "${q}"`);
+            return res.json(localResults);
+        }
+
+        if (process.env.NODE_ENV !== 'production')
+            console.log(`[Search] Fuse insuficiente (${localResults.length}), consultando IGDB...`);
+
         const igdbResults = await igdbService.searchGame(q);
 
         if (igdbResults.length > 0) {
-            // PASO B: "Hydration" - Guardamos/Actualizamos silenciosamente en MySQL
-            // Esto asegura que si el usuario hace clic en un juego, YA lo tenemos en la DB
-            const savePromises = igdbResults.map(game => createOrUpdateGame(game));
-            await Promise.all(savePromises);
-            
-            if (process.env.NODE_ENV !== 'production') console.log(`Se cachearon ${igdbResults.length} juegos desde IGDB.`);
-            return res.json(igdbResults);
+            await Promise.all(igdbResults.map(game => createOrUpdateGame(game)));
+            const refreshedResults = await searchService.search(q, 10);
+            return res.json(refreshedResults.length > 0 ? refreshedResults : igdbResults);
         }
 
-        // PASO C: Fallback - Si IGDB falla o no trae nada, buscamos solo localmente
-        const localResults = await searchGamesByTitle(q);
-        res.json(localResults);
+        return res.json(localResults);
 
     } catch (error) {
         try {
-            const localFallback = await searchGamesByTitle(q);
-            return res.json(localFallback);
-        } catch (fallbackError) {
-            errorHandlerController("Error buscando juegos", 500, res, error);
+            const igdbFallback = await igdbService.searchGame(q);
+            return res.json(igdbFallback);
+        } catch {
+            return errorHandlerController('Error buscando juegos', 500, res, error);
         }
     }
 };
