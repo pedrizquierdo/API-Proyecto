@@ -99,25 +99,29 @@ class IgdbService {
     }
 
     async searchGame(query, limit = 10) {
+        const safeQuery = query.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        const stepBBody = `
+            search "${safeQuery}";
+            fields name, slug, cover.url, first_release_date,
+                   total_rating_count, involved_companies.company.name, summary;
+            where category = (0, 8, 9, 10, 11) & cover != null;
+            limit ${limit};
+        `;
+
         try {
-            const stepA = this._formatGames(await this._request(this._buildMultiWordQuery(query, limit)));
+            const [resA, resB] = await Promise.allSettled([
+                this._request(this._buildMultiWordQuery(query, limit)),
+                this._request(stepBBody),
+            ]);
 
-            if (process.env.NODE_ENV !== 'production')
+            const stepA = resA.status === 'fulfilled' ? this._formatGames(resA.value) : [];
+            const stepB = resB.status === 'fulfilled' ? this._formatGames(resB.value) : [];
+
+            if (process.env.NODE_ENV !== 'production') {
                 console.log('[IGDB] Estrategia A "' + query + '": ' + stepA.length + ' resultados');
-
-            let stepB = [];
-            if (stepA.length < 3) {
-                if (process.env.NODE_ENV !== 'production')
-                    console.log('[IGDB] Estrategia B activada: ' + (stepA.length < 3));
-                const safeQuery = query.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-                const stepBBody = `
-                    search "${safeQuery}";
-                    fields name, slug, cover.url, first_release_date,
-                           total_rating_count, involved_companies.company.name, summary;
-                    where category = (0, 8, 9, 10, 11) & cover != null;
-                    limit ${limit};
-                `;
-                stepB = this._formatGames(await this._request(stepBBody));
+                console.log('[IGDB] Estrategia B activada: ' + (stepA.length < 3));
+                if (resA.status === 'rejected') console.warn('[IGDB] Estrategia A fallo:', resA.reason?.message);
+                if (resB.status === 'rejected') console.warn('[IGDB] Estrategia B fallo:', resB.reason?.message);
             }
 
             const seen = new Set();
@@ -138,25 +142,21 @@ class IgdbService {
 
     async searchGamesPaginated(query, page = 1, limit = 24) {
         const safeQuery = query.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        const stepBBody = `
+            search "${safeQuery}";
+            fields name, slug, cover.url, first_release_date, total_rating_count, involved_companies.company.name, summary;
+            where category = (0, 8, 9, 10, 11) & cover != null;
+            limit ${limit};
+        `;
 
         try {
-            const stepABody = `
-                fields name, slug, cover.url, first_release_date, total_rating_count, involved_companies.company.name, summary;
-                where name ~ *"${safeQuery}"* & category = (0, 8, 9, 10, 11) & cover != null;
-                sort total_rating_count desc;
-                limit ${limit};
-            `;
-            const stepBBody = `
-                search "${safeQuery}";
-                fields name, slug, cover.url, first_release_date, total_rating_count, involved_companies.company.name, summary;
-                where category = (0, 8, 9, 10, 11) & cover != null;
-                limit ${limit};
-            `;
-
-            const [stepA, stepB] = await Promise.all([
-                this._request(stepABody).then(d => this._formatGames(d)),
-                this._request(stepBBody).then(d => this._formatGames(d)),
+            const [resA, resB] = await Promise.allSettled([
+                this._request(this._buildMultiWordQuery(query, limit)),
+                this._request(stepBBody),
             ]);
+
+            const stepA = resA.status === 'fulfilled' ? this._formatGames(resA.value) : [];
+            const stepB = resB.status === 'fulfilled' ? this._formatGames(resB.value) : [];
 
             if (process.env.NODE_ENV !== 'production') {
                 console.log(`[IGDB Search] "${query}" — PasoA: ${stepA.length}, PasoB: ${stepB.length}`);
