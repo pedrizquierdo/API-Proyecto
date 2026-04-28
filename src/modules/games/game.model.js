@@ -97,7 +97,7 @@ const getRandomGame = async (excludeIds = []) => {
 
 const getAllGamesForIndex = async () => {
     const [rows] = await pool.query(
-        'SELECT id_game, title, slug, cover_url, developer, release_date, popularity FROM games LIMIT 5000'
+        'SELECT id_game, igdb_id, title, slug, cover_url, developer, release_date, popularity FROM games LIMIT 5000'
     );
     return rows;
 };

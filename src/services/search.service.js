@@ -15,7 +15,7 @@ class SearchService {
             return;
         }
         const [rows] = await pool.query(
-            'SELECT id_game, title, slug, cover_url, developer, release_date, popularity FROM games ORDER BY popularity DESC'
+            'SELECT id_game, igdb_id, title, slug, cover_url, developer, release_date, popularity FROM games ORDER BY popularity DESC'
         );
         this.gameIndex = rows;
         this.fuse = new Fuse(rows, {
