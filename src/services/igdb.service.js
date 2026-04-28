@@ -83,31 +83,41 @@ class IgdbService {
         }
     }
 
-    async searchGame(query, limit = 10) {
-        const safeQuery = query.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    _buildMultiWordQuery(query, limit) {
+        const normalized = query.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+        const words = normalized.split(/\s+/).filter(w => w.length >= 2);
+        const conditions = words.map(w => `name ~ *"${w}"*`).join(' & ');
+        return `
+            fields name, slug, cover.url, first_release_date,
+                   total_rating_count, involved_companies.company.name, summary;
+            where ${conditions}
+              & category = (0, 8, 9, 10, 11)
+              & cover != null;
+            sort total_rating_count desc;
+            limit ${limit};
+        `;
+    }
 
+    async searchGame(query, limit = 10) {
         try {
-            const stepABody = `
-                fields name, slug, cover.url, first_release_date, total_rating_count, involved_companies.company.name, summary;
-                where name ~ *"${safeQuery}"* & category = (0, 8, 9, 10, 11) & cover != null;
-                sort total_rating_count desc;
-                limit ${limit};
-            `;
-            const stepA = this._formatGames(await this._request(stepABody));
+            const stepA = this._formatGames(await this._request(this._buildMultiWordQuery(query, limit)));
+
+            if (process.env.NODE_ENV !== 'production')
+                console.log('[IGDB] Estrategia A "' + query + '": ' + stepA.length + ' resultados');
 
             let stepB = [];
-            if (stepA.length < 5) {
+            if (stepA.length < 3) {
+                if (process.env.NODE_ENV !== 'production')
+                    console.log('[IGDB] Estrategia B activada: ' + (stepA.length < 3));
+                const safeQuery = query.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
                 const stepBBody = `
                     search "${safeQuery}";
-                    fields name, slug, cover.url, first_release_date, total_rating_count, involved_companies.company.name, summary;
+                    fields name, slug, cover.url, first_release_date,
+                           total_rating_count, involved_companies.company.name, summary;
                     where category = (0, 8, 9, 10, 11) & cover != null;
                     limit ${limit};
                 `;
                 stepB = this._formatGames(await this._request(stepBBody));
-            }
-
-            if (process.env.NODE_ENV !== 'production') {
-                console.log(`[IGDB Search] "${query}" — PasoA: ${stepA.length}, PasoB: ${stepA.length < 5}`);
             }
 
             const seen = new Set();

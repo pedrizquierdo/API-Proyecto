@@ -46,36 +46,36 @@ const getTrending = async (req, res) => {
 const search = async (req, res) => {
     const { q } = req.query;
 
-    if (!q) {
-        return res.status(400).json({ message: 'Se requiere término de búsqueda' });
-    }
+    if (!q) return res.status(400).json({ message: 'Se requiere término de búsqueda' });
 
     try {
         const localResults = await searchService.search(q, 10);
 
-        if (localResults.length >= 3) {
-            if (process.env.NODE_ENV !== 'production')
-                console.log(`[Search] Fuse.js: ${localResults.length} resultados para "${q}"`);
-            return res.json(localResults);
-        }
-
         if (process.env.NODE_ENV !== 'production')
-            console.log(`[Search] Fuse insuficiente (${localResults.length}), consultando IGDB...`);
+            console.log('[Search] Fuse local: ' + localResults.length + ' para "' + q + '"');
 
-        const igdbResults = await igdbService.searchGame(q);
+        if (localResults.length < 3) {
+            const igdbResults = await igdbService.searchGame(q);
 
-        if (igdbResults.length > 0) {
-            await Promise.all(igdbResults.map(game => createOrUpdateGame(game)));
-            const refreshedResults = await searchService.search(q, 10);
-            return res.json(refreshedResults.length > 0 ? refreshedResults : igdbResults);
+            if (igdbResults.length > 0) {
+                Promise.all(igdbResults.map(game => createOrUpdateGame(game)))
+                    .then(() => searchService.invalidateIndex())
+                    .catch(() => {});
+
+                const igdbIds = new Set(igdbResults.map(g => g.igdb_id));
+                const combined = [...igdbResults];
+                localResults.forEach(g => {
+                    if (!igdbIds.has(g.igdb_id)) combined.push(g);
+                });
+                return res.json(combined.slice(0, 10));
+            }
         }
 
         return res.json(localResults);
 
     } catch (error) {
         try {
-            const igdbFallback = await igdbService.searchGame(q);
-            return res.json(igdbFallback);
+            return res.json(await igdbService.searchGame(q));
         } catch {
             return errorHandlerController('Error buscando juegos', 500, res, error);
         }

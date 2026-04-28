@@ -23,7 +23,7 @@ class SearchService {
                 { name: 'title', weight: 0.8 },
                 { name: 'developer', weight: 0.2 },
             ],
-            threshold: 0.4,
+            threshold: 0.3,
             distance: 200,
             minMatchCharLength: 2,
             includeScore: true,
