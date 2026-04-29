@@ -8,6 +8,7 @@ import {
     createOrUpdateGame,
     getGameByIgdbId,
     getRandomGame,
+    getPopularOnHitboxd as getPopularOnHitboxdModel,
 } from './game.model.js';
 import igdbService from '../../services/igdb.service.js';
 import searchService from '../../services/search.service.js';
@@ -168,4 +169,36 @@ const getRandom = async (req, res) => {
     }
 };
 
-export { getTrending, search, searchPage, getById, getBySlug, getNewReleases, getRandom };
+const getPopularOnHitboxd = async (req, res) => {
+    const limit = parseInt(req.query.limit) || 12;
+    const dayWindow = parseInt(req.query.days) || 30;
+
+    try {
+        const internalResults = await getPopularOnHitboxdModel(limit, dayWindow);
+
+        if (process.env.NODE_ENV !== 'production')
+            console.log('[Popular] Hitboxd interno: ' + internalResults.length + ' juegos');
+
+        if (internalResults.length >= 6) {
+            return res.json(internalResults);
+        }
+
+        if (process.env.NODE_ENV !== 'production')
+            console.log('[Popular] Insuficiente (' + internalResults.length + '), complementando con IGDB...');
+
+        const igdbResults = await igdbService.getTrendingGames(limit);
+
+        const internalIds = new Set(internalResults.map(g => g.id_game));
+        const igdbFiltered = igdbResults.filter(g => !internalIds.has(g.id_game));
+
+        Promise.all(igdbResults.map(g => createOrUpdateGame(g))).catch(() => {});
+
+        const combined = [...internalResults, ...igdbFiltered].slice(0, limit);
+        return res.json(combined);
+
+    } catch (error) {
+        errorHandlerController('Error obteniendo populares', 500, res, error);
+    }
+};
+
+export { getTrending, search, searchPage, getById, getBySlug, getNewReleases, getRandom, getPopularOnHitboxd };

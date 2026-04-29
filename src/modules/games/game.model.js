@@ -95,6 +95,54 @@ const getRandomGame = async (excludeIds = []) => {
     return rows[0];
 };
 
+const getPopularOnHitboxd = async (limit = 12, dayWindow = 30) => {
+    const query = `
+        SELECT
+            g.id_game,
+            g.title,
+            g.slug,
+            g.cover_url,
+            g.developer,
+            g.release_date,
+            g.description,
+            COUNT(DISTINCT ug.id_user) as total_players,
+            SUM(CASE WHEN ug.status = 'playing' THEN 1 ELSE 0 END) as active_players,
+            SUM(CASE WHEN ug.updated_at >= DATE_SUB(NOW(), INTERVAL ? DAY) THEN 1 ELSE 0 END) as recent_activity,
+            SUM(CASE WHEN ug.is_favorite = TRUE THEN 1 ELSE 0 END) as favorites,
+            AVG(CASE WHEN ug.rating IS NOT NULL THEN ug.rating ELSE NULL END) as avg_rating,
+            COUNT(DISTINCT r.id_review) as review_count,
+            COUNT(DISTINCT li.id_item) as list_count,
+            (
+                (SUM(CASE WHEN ug.status = 'playing' THEN 1 ELSE 0 END) * 3) +
+                (SUM(CASE WHEN ug.updated_at >= DATE_SUB(NOW(), INTERVAL ? DAY) THEN 1 ELSE 0 END) * 2) +
+                (COUNT(DISTINCT ug.id_user) * 1) +
+                (SUM(CASE WHEN ug.is_favorite = TRUE THEN 1 ELSE 0 END) * 2) +
+                (COUNT(DISTINCT r.id_review) * 1.5) +
+                (COUNT(DISTINCT li.id_item) * 0.5)
+            ) as hitboxd_score
+        FROM games g
+        INNER JOIN user_games ug ON g.id_game = ug.id_game
+        LEFT JOIN reviews r ON g.id_game = r.id_game
+        LEFT JOIN list_items li ON g.id_game = li.id_game
+        WHERE g.cover_url IS NOT NULL
+            AND ug.status IN ('played', 'playing')
+        GROUP BY
+            g.id_game, g.title, g.slug, g.cover_url,
+            g.developer, g.release_date, g.description
+        HAVING COUNT(DISTINCT ug.id_user) >= 1
+        ORDER BY hitboxd_score DESC
+        LIMIT ?
+    `;
+
+    try {
+        const [rows] = await pool.query(query, [dayWindow, dayWindow, limit]);
+        return rows;
+    } catch (error) {
+        console.error('Error obteniendo populares de Hitboxd:', error.message);
+        return [];
+    }
+};
+
 const getAllGamesForIndex = async () => {
     const [rows] = await pool.query(
         'SELECT id_game, igdb_id, title, slug, cover_url, developer, release_date, popularity FROM games LIMIT 5000'
@@ -112,4 +160,5 @@ export {
     getNewGamesLocal,
     getRandomGame,
     getAllGamesForIndex,
+    getPopularOnHitboxd,
 };
