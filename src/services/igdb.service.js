@@ -68,15 +68,48 @@ class IgdbService {
 
     async getNewReleases(limit = 12) {
         const now = Math.floor(Date.now() / 1000);
-        const queryBody = `
-            fields name, slug, cover.url, first_release_date, total_rating_count, summary, involved_companies.company.name, screenshots.url;
+
+        const SIX_MONTHS = 180 * 24 * 60 * 60;
+        const ONE_YEAR   = 365 * 24 * 60 * 60;
+        const TWO_YEARS  = 730 * 24 * 60 * 60;
+
+        const MIN_RATINGS_STRICT = 50;
+        const MIN_RATINGS_LOOSE  = 20;
+        const MIN_RATINGS_BARE   = 5;
+
+        const buildQuery = (fromTimestamp, minRatings, lim) => `
+            fields name, slug, cover.url, first_release_date, total_rating_count,
+                   summary, involved_companies.company.name, screenshots.url;
+            where first_release_date > ${fromTimestamp}
+              & first_release_date < ${now}
+              & first_release_date != null
+              & status = 0
+              & category = (0, 8, 9, 10, 11)
+              & cover != null
+              & total_rating_count > ${minRatings};
             sort first_release_date desc;
-            where first_release_date < ${now} & cover != null;
-            limit ${limit};
+            limit ${lim};
         `;
 
         try {
-            return this._formatGames(await this._request(queryBody));
+            let results = await this._request(buildQuery(now - SIX_MONTHS, MIN_RATINGS_STRICT, limit));
+
+            if (process.env.NODE_ENV !== 'production')
+                console.log('[IGDB] New Releases intento 1 (6m, >50): ' + results.length);
+
+            if (results.length < 6) {
+                results = await this._request(buildQuery(now - ONE_YEAR, MIN_RATINGS_LOOSE, limit));
+                if (process.env.NODE_ENV !== 'production')
+                    console.log('[IGDB] New Releases intento 2 (1y, >20): ' + results.length);
+            }
+
+            if (results.length < 6) {
+                results = await this._request(buildQuery(now - TWO_YEARS, MIN_RATINGS_BARE, limit));
+                if (process.env.NODE_ENV !== 'production')
+                    console.log('[IGDB] New Releases intento 3 (2y, >5): ' + results.length);
+            }
+
+            return this._formatGames(results);
         } catch (error) {
             console.error('Error New Releases:', error.message);
             return [];
