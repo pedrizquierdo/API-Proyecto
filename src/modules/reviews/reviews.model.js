@@ -116,4 +116,21 @@ const getReviewLikesCount = async (reviewId) => {
     return count;
 };
 
-export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount };
+const getRecentReviews = async (limit = 3) => {
+    const [rows] = await pool.query(`
+        SELECT r.id_review, r.content, r.rating, r.created_at,
+               u.username, u.avatar_url,
+               g.title as game_title, g.cover_url
+        FROM reviews r
+        JOIN users u ON r.id_user = u.id_user
+        JOIN games g ON r.id_game = g.id_game
+        WHERE r.has_spoilers = false
+          AND r.content IS NOT NULL
+          AND LENGTH(r.content) >= 20
+        ORDER BY r.created_at DESC
+        LIMIT ?
+    `, [limit]);
+    return rows;
+};
+
+export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews };

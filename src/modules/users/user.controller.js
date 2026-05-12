@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getUserInfo, softDeleteUser, activateUser, updateUserProfile, getUserByUsername, followUser, unfollowUser, checkFollowStatus, searchUsersByUsername, getFollowersModel, getFollowingModel } from "./user.model.js";
+import { getUserInfo, softDeleteUser, activateUser, updateUserProfile, getUserByUsername, followUser, unfollowUser, checkFollowStatus, searchUsersByUsername, getFollowersModel, getFollowingModel, getUserCount } from "./user.model.js";
 import { errorHandlerController } from "../../helpers/errorHandlerController.js";
 import validate from "../../utils/validate.js";
 
@@ -163,11 +163,21 @@ export {
     updateProfileController, 
     getPublicProfileController,
     followUserController,
-    softDeleteUserController, 
+    softDeleteUserController,
     activateUserController,
     unfollowUserController,
     checkFollowController,
     searchUsersController,
     getFollowersController,
-    getFollowingController
+    getFollowingController,
+    getUserCountController
 };
+
+async function getUserCountController(req, res) {
+    try {
+        const count = await getUserCount();
+        res.json({ count });
+    } catch (error) {
+        res.status(500).json({ error: 'Could not fetch user count' });
+    }
+}

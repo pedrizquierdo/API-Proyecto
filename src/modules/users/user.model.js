@@ -153,5 +153,11 @@ export {
     activateUser,
     searchUsersByUsername,
     getFollowersModel,
-    getFollowingModel
+    getFollowingModel,
+    getUserCount
 };
+
+async function getUserCount() {
+    const [[{ count }]] = await pool.query("SELECT COUNT(*) as count FROM users");
+    return Number(count);
+}

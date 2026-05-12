@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount } from './reviews.model.js';
+import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews } from './reviews.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 import validate from '../../utils/validate.js';
 import { upsertActivity } from '../activity/activity.model.js';
@@ -131,4 +131,14 @@ const toggleReviewLike = async (req, res) => {
     }
 };
 
-export { addReview, getGameReviews, getUserReviews, removeReview, reportReview, getReported, approveReview, toggleReviewLike };
+export { addReview, getGameReviews, getUserReviews, removeReview, reportReview, getReported, approveReview, toggleReviewLike, getRecentReviewsController };
+
+async function getRecentReviewsController(req, res) {
+    try {
+        const limit = Math.min(Number(req.query.limit) || 3, 10);
+        const reviews = await getRecentReviews(limit);
+        res.json(reviews);
+    } catch (error) {
+        res.status(500).json({ error: 'Could not fetch recent reviews' });
+    }
+}
