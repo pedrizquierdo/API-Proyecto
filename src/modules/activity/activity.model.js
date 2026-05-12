@@ -127,6 +127,50 @@ const getAllUserGames = async (userId) => {
     return rows;
 };
 
+const getUserStats = async (userId) => {
+    const [genreRows] = await pool.query(`
+        SELECT gr.name AS genre, COUNT(*) AS count
+        FROM user_games ug
+        JOIN game_genres gg ON ug.id_game = gg.id_game
+        JOIN genres gr ON gg.id_genre = gr.id_genre
+        WHERE ug.id_user = ?
+        GROUP BY gr.name
+        ORDER BY count DESC
+        LIMIT 8
+    `, [userId]);
+
+    const [yearRows] = await pool.query(`
+        SELECT YEAR(g.release_date) AS year, COUNT(*) AS count
+        FROM user_games ug
+        JOIN games g ON ug.id_game = g.id_game
+        WHERE ug.id_user = ? AND g.release_date IS NOT NULL AND YEAR(g.release_date) > 1979
+        GROUP BY YEAR(g.release_date)
+        ORDER BY count DESC
+        LIMIT 8
+    `, [userId]);
+
+    const [[ratingRow]] = await pool.query(`
+        SELECT AVG(rating) AS avg_rating, COUNT(*) AS rated_count
+        FROM user_games
+        WHERE id_user = ? AND rating IS NOT NULL
+    `, [userId]);
+
+    const [statusRows] = await pool.query(`
+        SELECT status, COUNT(*) AS count
+        FROM user_games
+        WHERE id_user = ? AND status IS NOT NULL
+        GROUP BY status
+    `, [userId]);
+
+    return {
+        genre_distribution: genreRows.map(r => ({ genre: r.genre, count: Number(r.count) })),
+        year_distribution: yearRows.map(r => ({ year: r.year, count: Number(r.count) })),
+        avg_rating: ratingRow.avg_rating ? parseFloat(ratingRow.avg_rating).toFixed(1) : null,
+        rated_count: Number(ratingRow.rated_count),
+        status_distribution: statusRows.map(r => ({ status: r.status, count: Number(r.count) })),
+    };
+};
+
 export {
     upsertActivity,
     getActivityByGame,
@@ -135,4 +179,5 @@ export {
     getFriendsFeed,
     getAllUserGames,
     getUserStreak,
+    getUserStats,
 };

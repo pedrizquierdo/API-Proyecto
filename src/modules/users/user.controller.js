@@ -2,6 +2,7 @@ import { z } from "zod";
 import { getUserInfo, softDeleteUser, activateUser, updateUserProfile, getUserByUsername, followUser, unfollowUser, checkFollowStatus, searchUsersByUsername, getFollowersModel, getFollowingModel, getUserCount, getUserSuggestions } from "./user.model.js";
 import { errorHandlerController } from "../../helpers/errorHandlerController.js";
 import validate from "../../utils/validate.js";
+import { createNotification } from "../notifications/notifications.model.js";
 
 export const validateUpdateProfile = validate(z.object({
     bio: z.string().max(300, "La bio no puede superar 300 caracteres").optional(),
@@ -61,6 +62,7 @@ const followUserController = async (req, res) => {
 
     try {
         await followUser(followerId, followingId);
+        createNotification(followingId, followerId, 'follow').catch(() => {});
         res.status(200).json({ message: "Usuario seguido correctamente" });
     } catch (error) {
         // Si ya lo seguía, MySQL dará error de duplicado, puedes manejarlo aquí

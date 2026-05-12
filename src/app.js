@@ -11,6 +11,7 @@ import gameRoutes from "./modules/games/game.routes.js";
 import activityRoutes from "./modules/activity/activity.routes.js";
 import reviewRoutes from "./modules/reviews/reviews.routes.js";
 import listRoutes from "./modules/lists/lists.routes.js";
+import notificationRoutes from "./modules/notifications/notifications.routes.js";
 
 
 dotenv.config();
@@ -49,6 +50,7 @@ app.use("/api/games", gameRoutes);
 app.use("/api/activity", activityRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/lists", listRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 
 app.use((err, req, res, next) => {

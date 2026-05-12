@@ -32,13 +32,21 @@ const getReviewsByGame = async (gameId, page = 1, limit = 20, userId = null) => 
 
 const getReviewsByUser = async (userId) => {
     const [rows] = await pool.query(`
-        SELECT r.*, g.title as game_title, g.cover_url 
+        SELECT r.*, g.title as game_title, g.cover_url, g.slug as game_slug
         FROM reviews r
         JOIN games g ON r.id_game = g.id_game
         WHERE r.id_user = ?
         ORDER BY r.created_at DESC
     `, [userId]);
     return rows;
+};
+
+const getReviewAuthorId = async (reviewId) => {
+    const [[row]] = await pool.query(
+        'SELECT id_user FROM reviews WHERE id_review = ?',
+        [reviewId]
+    );
+    return row?.id_user ?? null;
 };
 
 const createReport = async (userId, reviewId, reason) => {
@@ -156,4 +164,4 @@ const getGameRatingStats = async (gameId) => {
     };
 };
 
-export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getRatingDistribution, getGameRatingStats };
+export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getRatingDistribution, getGameRatingStats, getReviewAuthorId };

@@ -6,6 +6,7 @@ import {
     getFriendsFeed,
     getAllUserGames,
     getUserStreak,
+    getUserStats,
 } from './activity.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 
@@ -97,4 +98,14 @@ const getStreak = async (req, res) => {
     }
 };
 
-export { logActivity, getMyWatchlist, checkStatus, getFeed, getUserLibrary, getStreak };
+const getStats = async (req, res) => {
+    try {
+        const userId = req.user.id_user;
+        const stats = await getUserStats(userId);
+        res.json(stats);
+    } catch (error) {
+        return errorHandlerController('Error obteniendo estadísticas', 500, res, error);
+    }
+};
+
+export { logActivity, getMyWatchlist, checkStatus, getFeed, getUserLibrary, getStreak, getStats };

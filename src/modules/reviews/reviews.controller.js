@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews } from './reviews.model.js';
+import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getReviewAuthorId } from './reviews.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 import validate from '../../utils/validate.js';
 import { upsertActivity } from '../activity/activity.model.js';
+import { createNotification } from '../notifications/notifications.model.js';
 
 export const validateAddReview = validate(z.object({
     id_game: z.number().int().positive("id_game debe ser un entero positivo"),
@@ -125,6 +126,14 @@ const toggleReviewLike = async (req, res) => {
         }
 
         const count = await getReviewLikesCount(reviewId);
+
+        if (liked) {
+            const authorId = await getReviewAuthorId(reviewId);
+            if (authorId && authorId !== id_user) {
+                createNotification(authorId, id_user, 'review_like', parseInt(reviewId)).catch(() => {});
+            }
+        }
+
         res.json({ liked, count });
     } catch (error) {
         return errorHandlerController("Error al dar like a la reseña", 500, res, error);
