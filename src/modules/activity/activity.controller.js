@@ -4,7 +4,8 @@ import {
     getWatchlist,
     deleteActivity,
     getFriendsFeed,
-    getAllUserGames
+    getAllUserGames,
+    getUserStreak,
 } from './activity.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 
@@ -86,4 +87,14 @@ const getUserLibrary = async (req, res) => {
     }
 };
 
-export { logActivity, getMyWatchlist, checkStatus, getFeed, getUserLibrary };
+const getStreak = async (req, res) => {
+    try {
+        const userId = req.user.id_user;
+        const streak = await getUserStreak(userId);
+        res.json({ streak });
+    } catch (error) {
+        return errorHandlerController("Error obteniendo racha", 500, res, error);
+    }
+};
+
+export { logActivity, getMyWatchlist, checkStatus, getFeed, getUserLibrary, getStreak };

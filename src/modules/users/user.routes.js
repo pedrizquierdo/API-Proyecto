@@ -12,13 +12,15 @@ import {
     searchUsersController,
     getFollowersController,
     getFollowingController,
-    getUserCountController
+    getUserCountController,
+    getSuggestionsController,
 } from "./user.controller.js";
 import { verifyToken } from "../../middlewares/authMiddleware.js";
 
 const router = Router();
 
 router.get("/count", getUserCountController);
+router.get("/suggestions", verifyToken, getSuggestionsController);
 router.get("/search", searchUsersController);
 router.get("/follow/:id/check", verifyToken, checkFollowController);
 router.get("/me", verifyToken, getUserInfoController);

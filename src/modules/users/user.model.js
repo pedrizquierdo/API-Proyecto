@@ -138,26 +138,52 @@ const activateUser = (id) => {
     return updateVisibility(id, true);
 };
 
-export { 
-    getUserByEmail, 
+export {
+    getUserByEmail,
     getUserByUsernameForAuth,
-    createUser, 
-    getUserInfo, 
-    getUserByUsername, 
+    createUser,
+    getUserInfo,
+    getUserByUsername,
     updateUserProfile,
     followUser,
     unfollowUser,
     updateVisibility,
     checkFollowStatus,
-    softDeleteUser, 
+    softDeleteUser,
     activateUser,
     searchUsersByUsername,
     getFollowersModel,
     getFollowingModel,
-    getUserCount
+    getUserCount,
+    getUserSuggestions,
 };
 
 async function getUserCount() {
     const [[{ count }]] = await pool.query("SELECT COUNT(*) as count FROM users");
     return Number(count);
+}
+
+async function getUserSuggestions(userId, limit = 6) {
+    const [rows] = await pool.query(`
+        SELECT DISTINCT u.id_user, u.username, u.avatar_url, u.bio
+        FROM follows f1
+        JOIN follows f2 ON f1.following_id = f2.follower_id
+        JOIN users u ON f2.following_id = u.id_user
+        WHERE f1.follower_id = ?
+          AND f2.following_id != ?
+          AND f2.following_id NOT IN (
+              SELECT following_id FROM follows WHERE follower_id = ?
+          )
+        UNION
+        SELECT DISTINCT u.id_user, u.username, u.avatar_url, u.bio
+        FROM follows f
+        JOIN users u ON f.follower_id = u.id_user
+        WHERE f.following_id = ?
+          AND f.follower_id != ?
+          AND f.follower_id NOT IN (
+              SELECT following_id FROM follows WHERE follower_id = ?
+          )
+        LIMIT ?
+    `, [userId, userId, userId, userId, userId, userId, limit]);
+    return rows;
 }

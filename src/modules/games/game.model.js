@@ -95,7 +95,10 @@ const getRandomGame = async (excludeIds = []) => {
     return rows[0];
 };
 
-const getPopularOnHitboxd = async (limit = 12, dayWindow = 30) => {
+const getPopularOnHitboxd = async (limit = 12, dayWindow = 30, genre = null) => {
+    const genreJoin  = genre ? 'JOIN game_genres gg ON g.id_game = gg.id_game JOIN genres gr ON gg.id_genre = gr.id_genre' : '';
+    const genreWhere = genre ? 'AND gr.name = ?' : '';
+
     const query = `
         SELECT
             g.id_game,
@@ -124,8 +127,10 @@ const getPopularOnHitboxd = async (limit = 12, dayWindow = 30) => {
         INNER JOIN user_games ug ON g.id_game = ug.id_game
         LEFT JOIN reviews r ON g.id_game = r.id_game
         LEFT JOIN list_items li ON g.id_game = li.id_game
+        ${genreJoin}
         WHERE g.cover_url IS NOT NULL
             AND ug.status IN ('played', 'playing')
+            ${genreWhere}
         GROUP BY
             g.id_game, g.title, g.slug, g.cover_url,
             g.developer, g.release_date, g.description
@@ -134,11 +139,42 @@ const getPopularOnHitboxd = async (limit = 12, dayWindow = 30) => {
         LIMIT ?
     `;
 
+    const params = genre
+        ? [dayWindow, dayWindow, genre, limit]
+        : [dayWindow, dayWindow, limit];
+
     try {
-        const [rows] = await pool.query(query, [dayWindow, dayWindow, limit]);
+        const [rows] = await pool.query(query, params);
         return rows;
     } catch (error) {
         console.error('Error obteniendo populares de Hitboxd:', error.message);
+        return [];
+    }
+};
+
+const getRecommendedGames = async (userId, limit = 20) => {
+    const query = `
+        SELECT DISTINCT g.id_game, g.title, g.slug, g.cover_url, g.developer, g.release_date, g.popularity
+        FROM game_genres gg1
+        JOIN genres gr ON gg1.id_genre = gr.id_genre
+        JOIN game_genres gg2 ON gg1.id_genre = gg2.id_genre
+        JOIN games g ON gg2.id_game = g.id_game
+        WHERE gg1.id_game IN (
+            SELECT id_game FROM user_games
+            WHERE id_user = ? AND status IN ('played', 'playing')
+        )
+        AND g.id_game NOT IN (
+            SELECT id_game FROM user_games WHERE id_user = ?
+        )
+        AND g.cover_url IS NOT NULL
+        ORDER BY g.popularity DESC
+        LIMIT ?
+    `;
+    try {
+        const [rows] = await pool.query(query, [userId, userId, limit]);
+        return rows;
+    } catch (error) {
+        console.error('Error fetching recommendations:', error.message);
         return [];
     }
 };
@@ -161,4 +197,5 @@ export {
     getRandomGame,
     getAllGamesForIndex,
     getPopularOnHitboxd,
+    getRecommendedGames,
 };

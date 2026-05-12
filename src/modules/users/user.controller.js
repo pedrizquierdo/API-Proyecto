@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getUserInfo, softDeleteUser, activateUser, updateUserProfile, getUserByUsername, followUser, unfollowUser, checkFollowStatus, searchUsersByUsername, getFollowersModel, getFollowingModel, getUserCount } from "./user.model.js";
+import { getUserInfo, softDeleteUser, activateUser, updateUserProfile, getUserByUsername, followUser, unfollowUser, checkFollowStatus, searchUsersByUsername, getFollowersModel, getFollowingModel, getUserCount, getUserSuggestions } from "./user.model.js";
 import { errorHandlerController } from "../../helpers/errorHandlerController.js";
 import validate from "../../utils/validate.js";
 
@@ -159,8 +159,8 @@ const activateUserController = async (req, res) => {
 };
     
 export {
-    getUserInfoController, 
-    updateProfileController, 
+    getUserInfoController,
+    updateProfileController,
     getPublicProfileController,
     followUserController,
     softDeleteUserController,
@@ -170,7 +170,8 @@ export {
     searchUsersController,
     getFollowersController,
     getFollowingController,
-    getUserCountController
+    getUserCountController,
+    getSuggestionsController,
 };
 
 async function getUserCountController(req, res) {
@@ -179,5 +180,16 @@ async function getUserCountController(req, res) {
         res.json({ count });
     } catch (error) {
         res.status(500).json({ error: 'Could not fetch user count' });
+    }
+}
+
+async function getSuggestionsController(req, res) {
+    try {
+        const { id_user } = req.user;
+        const limit = parseInt(req.query.limit) || 6;
+        const suggestions = await getUserSuggestions(id_user, limit);
+        res.json(suggestions);
+    } catch (error) {
+        res.status(500).json({ error: 'Could not fetch suggestions' });
     }
 }

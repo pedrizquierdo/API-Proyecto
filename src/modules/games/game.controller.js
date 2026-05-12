@@ -9,6 +9,7 @@ import {
     getGameByIgdbId,
     getRandomGame,
     getPopularOnHitboxd as getPopularOnHitboxdModel,
+    getRecommendedGames,
 } from './game.model.js';
 import igdbService from '../../services/igdb.service.js';
 import searchService from '../../services/search.service.js';
@@ -172,9 +173,10 @@ const getRandom = async (req, res) => {
 const getPopularOnHitboxd = async (req, res) => {
     const limit = parseInt(req.query.limit) || 12;
     const dayWindow = parseInt(req.query.days) || 30;
+    const genre = req.query.genre || null;
 
     try {
-        const internalResults = await getPopularOnHitboxdModel(limit, dayWindow);
+        const internalResults = await getPopularOnHitboxdModel(limit, dayWindow, genre);
 
         if (process.env.NODE_ENV !== 'production')
             console.log('[Popular] Hitboxd interno: ' + internalResults.length + ' juegos');
@@ -201,4 +203,15 @@ const getPopularOnHitboxd = async (req, res) => {
     }
 };
 
-export { getTrending, search, searchPage, getById, getBySlug, getNewReleases, getRandom, getPopularOnHitboxd };
+const getRecommended = async (req, res) => {
+    try {
+        const { id_user } = req.user;
+        const limit = parseInt(req.query.limit) || 20;
+        const games = await getRecommendedGames(id_user, limit);
+        res.json(games);
+    } catch (error) {
+        errorHandlerController('Error obteniendo recomendaciones', 500, res, error);
+    }
+};
+
+export { getTrending, search, searchPage, getById, getBySlug, getNewReleases, getRandom, getPopularOnHitboxd, getRecommended };
