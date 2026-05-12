@@ -186,6 +186,46 @@ const getAllGamesForIndex = async () => {
     return rows;
 };
 
+const getGameGenresLocal = async (gameId) => {
+    const [rows] = await pool.query(`
+        SELECT gr.igdb_genre_id as id, gr.name
+        FROM game_genres gg
+        JOIN genres gr ON gg.id_genre = gr.id_genre
+        WHERE gg.id_game = ?
+    `, [gameId]);
+    return rows;
+};
+
+const upsertGameGenres = async (gameId, genres) => {
+    for (const genre of genres) {
+        await pool.query(
+            `INSERT INTO genres (igdb_genre_id, name) VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE name = VALUES(name)`,
+            [genre.id, genre.name]
+        );
+        await pool.query(
+            `INSERT IGNORE INTO game_genres (id_game, id_genre)
+             SELECT ?, id_genre FROM genres WHERE igdb_genre_id = ?`,
+            [gameId, genre.id]
+        );
+    }
+};
+
+const getStatusDistribution = async (gameId) => {
+    const [rows] = await pool.query(`
+        SELECT status, COUNT(*) as count
+        FROM user_games
+        WHERE id_game = ? AND status IS NOT NULL
+        GROUP BY status
+    `, [gameId]);
+    const total = rows.reduce((sum, r) => sum + Number(r.count), 0);
+    return rows.map(r => ({
+        status: r.status,
+        count: Number(r.count),
+        percentage: total > 0 ? Math.round((Number(r.count) / total) * 100) : 0,
+    }));
+};
+
 export {
     getGameById,
     getGameBySlug,
@@ -198,4 +238,7 @@ export {
     getAllGamesForIndex,
     getPopularOnHitboxd,
     getRecommendedGames,
+    getGameGenresLocal,
+    upsertGameGenres,
+    getStatusDistribution,
 };

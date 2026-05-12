@@ -226,6 +226,31 @@ class IgdbService {
         }
     }
 
+    async getGameExtras(igdbId) {
+        const queryBody = `
+            fields genres.name, genres.id,
+                   similar_games.name, similar_games.slug, similar_games.cover.url,
+                   similar_games.first_release_date, similar_games.total_rating_count,
+                   similar_games.involved_companies.company.name, similar_games.screenshots.url;
+            where id = ${igdbId};
+            limit 1;
+        `;
+        try {
+            const data = await this._request(queryBody);
+            const game = data[0];
+            if (!game) return { genres: [], similarGames: [] };
+
+            const genres = (game.genres || []).map(g => ({ id: g.id, name: g.name }));
+            const similarRaw = (game.similar_games || []).filter(g => g.cover);
+            const similarGames = this._formatGames(similarRaw).slice(0, 8);
+
+            return { genres, similarGames };
+        } catch (error) {
+            console.error('Error fetching game extras from IGDB:', error.message);
+            return { genres: [], similarGames: [] };
+        }
+    }
+
     _formatGames(igdbData) {
         
         return igdbData.map(game => {

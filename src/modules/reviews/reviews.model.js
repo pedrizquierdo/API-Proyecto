@@ -19,7 +19,7 @@ const getReviewsByGame = async (gameId, page = 1, limit = 20, userId = null) => 
         : [gameId, limit, offset];
     const [rows] = await pool.query(`
         SELECT r.*, u.username, u.avatar_url,
-            (SELECT COUNT(*) FROM likes WHERE id_review = r.id_review) as likes_count
+            (SELECT COUNT(*) FROM likes WHERE id_review = r.id_review) as likes
             ${isLikedSelect}
         FROM reviews r
         JOIN users u ON r.id_user = u.id_user
@@ -133,4 +133,27 @@ const getRecentReviews = async (limit = 3) => {
     return rows;
 };
 
-export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews };
+const getRatingDistribution = async (gameId) => {
+    const [rows] = await pool.query(`
+        SELECT rating, COUNT(*) as count
+        FROM user_games
+        WHERE id_game = ? AND rating IS NOT NULL
+        GROUP BY rating
+        ORDER BY rating ASC
+    `, [gameId]);
+    return rows;
+};
+
+const getGameRatingStats = async (gameId) => {
+    const [[stats]] = await pool.query(`
+        SELECT COUNT(*) as total_ratings, AVG(rating) as avg_rating
+        FROM user_games
+        WHERE id_game = ? AND rating IS NOT NULL
+    `, [gameId]);
+    return {
+        avg_rating: stats.avg_rating ? parseFloat(stats.avg_rating).toFixed(1) : null,
+        total_ratings: Number(stats.total_ratings),
+    };
+};
+
+export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getRatingDistribution, getGameRatingStats };

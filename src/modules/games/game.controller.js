@@ -10,7 +10,11 @@ import {
     getRandomGame,
     getPopularOnHitboxd as getPopularOnHitboxdModel,
     getRecommendedGames,
+    getGameGenresLocal,
+    upsertGameGenres,
+    getStatusDistribution,
 } from './game.model.js';
+import { getRatingDistribution, getGameRatingStats } from '../reviews/reviews.model.js';
 import igdbService from '../../services/igdb.service.js';
 import searchService from '../../services/search.service.js';
 
@@ -214,4 +218,47 @@ const getRecommended = async (req, res) => {
     }
 };
 
-export { getTrending, search, searchPage, getById, getBySlug, getNewReleases, getRandom, getPopularOnHitboxd, getRecommended };
+const getExtras = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const game = await getGameById(id);
+        if (!game) return res.status(404).json({ message: "Juego no encontrado" });
+
+        let genres = await getGameGenresLocal(id);
+        let similarGames = [];
+
+        if (game.igdb_id) {
+            const extras = await igdbService.getGameExtras(game.igdb_id);
+            similarGames = extras.similarGames;
+            if (genres.length === 0 && extras.genres.length > 0) {
+                genres = extras.genres;
+                await upsertGameGenres(id, genres);
+            }
+        }
+
+        res.json({ genres, similarGames });
+    } catch (error) {
+        errorHandlerController("Error obteniendo extras del juego", 500, res, error);
+    }
+};
+
+const getStats = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [ratingDist, ratingStats, statusDist] = await Promise.all([
+            getRatingDistribution(id),
+            getGameRatingStats(id),
+            getStatusDistribution(id),
+        ]);
+        res.json({
+            rating_distribution: ratingDist,
+            avg_rating: ratingStats.avg_rating,
+            total_ratings: ratingStats.total_ratings,
+            status_distribution: statusDist,
+        });
+    } catch (error) {
+        errorHandlerController("Error obteniendo estadísticas del juego", 500, res, error);
+    }
+};
+
+export { getTrending, search, searchPage, getById, getBySlug, getNewReleases, getRandom, getPopularOnHitboxd, getRecommended, getExtras, getStats };
