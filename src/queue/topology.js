@@ -33,6 +33,14 @@ const QUEUES = {
     routingKey: 'user.followed',
     // DLQ: notifications.dispatcher.dlx
   },
+
+  SCORES_RECOMPUTE: {
+    name: 'scores.recompute',
+    exchange: EXCHANGES.EVENTS,
+    routingKey: 'scores.recompute.requested',
+    // prefetch: 1 — only one recompute runs at a time across all workers.
+    // DLQ: scores.recompute.dlx
+  },
 };
 
 // Routing keys published by consumers as domain events, and by producers
@@ -42,6 +50,7 @@ const ROUTING_KEYS = {
   SEARCH_REINDEX_REQUESTED: 'search.reindex.requested',
   USER_FOLLOWED: 'user.followed',
   REVIEW_LIKED: 'review.liked',
+  SCORES_RECOMPUTE_REQUESTED: 'scores.recompute.requested',
 };
 
 export { EXCHANGES, QUEUES, ROUTING_KEYS };

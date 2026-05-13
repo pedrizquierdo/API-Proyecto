@@ -115,3 +115,17 @@ CREATE TABLE likes (
     ),
     UNIQUE(id_user, id_review, id_list)
 );
+CREATE TABLE hitboxd_score_cache (
+  id_game INT PRIMARY KEY,
+  score DOUBLE NOT NULL DEFAULT 0,
+  total_players INT NOT NULL DEFAULT 0,
+  active_players INT NOT NULL DEFAULT 0,
+  recent_activity INT NOT NULL DEFAULT 0,
+  favorites INT NOT NULL DEFAULT 0,
+  avg_rating DECIMAL(3,2),
+  review_count INT NOT NULL DEFAULT 0,
+  list_count INT NOT NULL DEFAULT 0,
+  computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_score (score DESC),
+  FOREIGN KEY (id_game) REFERENCES games(id_game) ON DELETE CASCADE
+);

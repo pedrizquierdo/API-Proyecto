@@ -12,6 +12,7 @@ import {
     getGameGenresLocal,
     upsertGameGenres,
     getStatusDistribution,
+    getPopularFromCache,
 } from './game.model.js';
 import { enqueueGameUpsert } from '../../queue/producers/games.producer.js';
 import { publish } from '../../queue/rabbit.js';
@@ -181,17 +182,30 @@ const getPopularOnHitboxd = async (req, res) => {
     const genre = req.query.genre || null;
 
     try {
-        const internalResults = await getPopularOnHitboxdModel(limit, dayWindow, genre);
+        // Fast path: serve from precomputed cache.
+        const cachedResults = await getPopularFromCache(limit, genre);
+
+        if (cachedResults.length >= 6) {
+            return res.json(cachedResults);
+        }
+
+        // Cache miss (fresh install or cache not yet populated): trigger a background
+        // recompute so the next request will be served from cache, then fall through
+        // to the live query to serve this request without delay.
+        publish(EXCHANGES.EVENTS, ROUTING_KEYS.SCORES_RECOMPUTE_REQUESTED, { source: 'cache_miss' })
+            .catch(err => console.error('[scores] Fallo al publicar recompute:', err.message));
 
         if (process.env.NODE_ENV !== 'production')
-            console.log('[Popular] Hitboxd interno: ' + internalResults.length + ' juegos');
+            console.log('[Popular] Cache insuficiente (' + cachedResults.length + '), ejecutando query en vivo...');
+
+        const internalResults = await getPopularOnHitboxdModel(limit, dayWindow, genre);
 
         if (internalResults.length >= 6) {
             return res.json(internalResults);
         }
 
         if (process.env.NODE_ENV !== 'production')
-            console.log('[Popular] Insuficiente (' + internalResults.length + '), complementando con IGDB...');
+            console.log('[Popular] Query en vivo insuficiente (' + internalResults.length + '), complementando con IGDB...');
 
         const igdbResults = await igdbService.getTrendingGames(limit);
 
@@ -200,8 +214,7 @@ const getPopularOnHitboxd = async (req, res) => {
 
         Promise.all(igdbResults.map(g => enqueueGameUpsert(g))).catch(err => console.error('[games.enqueue]', err.message));
 
-        const combined = [...internalResults, ...igdbFiltered].slice(0, limit);
-        return res.json(combined);
+        return res.json([...internalResults, ...igdbFiltered].slice(0, limit));
 
     } catch (error) {
         errorHandlerController('Error obteniendo populares', 500, res, error);
@@ -262,6 +275,18 @@ const getStats = async (req, res) => {
     }
 };
 
+const triggerRecomputeScores = async (req, res) => {
+    try {
+        await publish(EXCHANGES.EVENTS, ROUTING_KEYS.SCORES_RECOMPUTE_REQUESTED, {
+            triggeredBy: req.user.id_user,
+            source: 'admin',
+        });
+        res.status(202).json({ message: 'Recomputo de scores encolado' });
+    } catch (error) {
+        errorHandlerController('Error encolando recomputo de scores', 500, res, error);
+    }
+};
+
 const triggerReindex = async (req, res) => {
     try {
         await publish(EXCHANGES.EVENTS, ROUTING_KEYS.SEARCH_REINDEX_REQUESTED, {
@@ -273,4 +298,4 @@ const triggerReindex = async (req, res) => {
     }
 };
 
-export { getTrending, search, searchPage, getById, getBySlug, getNewReleases, getRandom, getPopularOnHitboxd, getRecommended, getExtras, getStats, triggerReindex };
+export { getTrending, search, searchPage, getById, getBySlug, getNewReleases, getRandom, getPopularOnHitboxd, getRecommended, getExtras, getStats, triggerReindex, triggerRecomputeScores };
