@@ -23,6 +23,16 @@ const QUEUES = {
     routingKey: 'game.upserted',
     // DLQ: search.reindex.dlx
   },
+
+  NOTIFICATIONS_DISPATCHER: {
+    name: 'notifications.dispatcher',
+    exchange: EXCHANGES.EVENTS,
+    // Primary binding set via consume() using the first routing key.
+    // Additional bindings (review.liked) are added manually in
+    // startNotificationsConsumer() after the queue is asserted.
+    routingKey: 'user.followed',
+    // DLQ: notifications.dispatcher.dlx
+  },
 };
 
 // Routing keys published by consumers as domain events, and by producers
@@ -30,6 +40,8 @@ const QUEUES = {
 const ROUTING_KEYS = {
   GAME_UPSERTED: 'game.upserted',
   SEARCH_REINDEX_REQUESTED: 'search.reindex.requested',
+  USER_FOLLOWED: 'user.followed',
+  REVIEW_LIKED: 'review.liked',
 };
 
 export { EXCHANGES, QUEUES, ROUTING_KEYS };

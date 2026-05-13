@@ -2,8 +2,7 @@ import { z } from "zod";
 import { getUserInfo, softDeleteUser, activateUser, updateUserProfile, getUserByUsername, followUser, unfollowUser, checkFollowStatus, searchUsersByUsername, getFollowersModel, getFollowingModel, getUserCount, getUserSuggestions } from "./user.model.js";
 import { errorHandlerController } from "../../helpers/errorHandlerController.js";
 import validate from "../../utils/validate.js";
-import { createNotification, getUnreadCount } from "../notifications/notifications.model.js";
-import { emitToUser } from "../../realtime/io.js";
+import { emitUserFollowed } from "../../queue/producers/events.producer.js";
 
 export const validateUpdateProfile = validate(z.object({
     bio: z.string().max(300, "La bio no puede superar 300 caracteres").optional(),
@@ -63,12 +62,8 @@ const followUserController = async (req, res) => {
 
     try {
         await followUser(followerId, followingId);
-        createNotification(followingId, followerId, 'follow')
-            .then(notif => Promise.all([
-                emitToUser(followingId, 'notification:new', notif),
-                getUnreadCount(followingId).then(count => emitToUser(followingId, 'notification:unread_count', { count })),
-            ]))
-            .catch(() => {});
+        emitUserFollowed({ followerId, followingId: parseInt(followingId) })
+            .catch(err => console.error('[event]', err.message));
         res.status(200).json({ message: "Usuario seguido correctamente" });
     } catch (error) {
         // Si ya lo seguía, MySQL dará error de duplicado, puedes manejarlo aquí

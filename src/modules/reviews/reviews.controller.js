@@ -3,8 +3,8 @@ import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createR
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 import validate from '../../utils/validate.js';
 import { upsertActivity } from '../activity/activity.model.js';
-import { createNotification, getUnreadCount } from '../notifications/notifications.model.js';
-import { emitToUser, emitToGame, emitToAdmins } from '../../realtime/io.js';
+import { emitToGame, emitToAdmins } from '../../realtime/io.js';
+import { emitReviewLiked } from '../../queue/producers/events.producer.js';
 import { fanoutToFollowers } from '../../realtime/fanout.js';
 
 export const validateAddReview = validate(z.object({
@@ -152,14 +152,12 @@ const toggleReviewLike = async (req, res) => {
 
         if (liked) {
             const authorId = await getReviewAuthorId(reviewId);
-            if (authorId && authorId !== id_user) {
-                createNotification(authorId, id_user, 'review_like', parseInt(reviewId))
-                    .then(notif => Promise.all([
-                        emitToUser(authorId, 'notification:new', notif),
-                        getUnreadCount(authorId).then(c => emitToUser(authorId, 'notification:unread_count', { count: c })),
-                    ]))
-                    .catch(() => {});
-            }
+            emitReviewLiked({
+                likerId: id_user,
+                reviewId: parseInt(reviewId),
+                reviewAuthorId: authorId,
+                gameId,
+            }).catch(err => console.error('[event]', err.message));
         }
 
         res.json({ liked, count });

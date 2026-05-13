@@ -3,6 +3,7 @@ import '../config/db.js';
 import { bootstrapQueues } from './bootstrap.js';
 import { startGamesConsumer } from './consumers/games.consumer.js';
 import { startSearchConsumer } from './consumers/search.consumer.js';
+import { startNotificationsConsumer } from './consumers/notifications.consumer.js';
 
 async function main() {
   console.log('Worker: iniciando...');
@@ -10,6 +11,7 @@ async function main() {
   await bootstrapQueues();
   await startGamesConsumer();
   await startSearchConsumer();
+  await startNotificationsConsumer();
 
   console.log('Worker: listo y escuchando mensajes');
 }
