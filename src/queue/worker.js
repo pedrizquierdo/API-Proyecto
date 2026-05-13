@@ -1,15 +1,13 @@
 import 'dotenv/config';
 import '../config/db.js';
 import { bootstrapQueues } from './bootstrap.js';
+import { startGamesConsumer } from './consumers/games.consumer.js';
 
 async function main() {
   console.log('Worker: iniciando...');
 
   await bootstrapQueues();
-
-  // Registrar consumers aqui a medida que se implementen features
-  // Ejemplo:
-  // await consume('some.queue', { exchange: EXCHANGES.EVENTS, routingKey: 'some.key', handler })
+  await startGamesConsumer();
 
   console.log('Worker: listo y escuchando mensajes');
 }

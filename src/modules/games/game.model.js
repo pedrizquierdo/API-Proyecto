@@ -1,5 +1,4 @@
 import pool from '../../config/db.js';
-import searchService from '../../services/search.service.js';
 
 const getGameById = async (id) => {
     const [rows] = await pool.query(
@@ -74,7 +73,8 @@ const createOrUpdateGame = async (game) => {
     
     const id_game = result.insertId || (await getGameByIgdbId(game.igdb_id)).id_game;
 
-    searchService.invalidateIndex();
+    // Index invalidation removed: the games.consumer publishes game.upserted,
+    // and the search reindex consumer (Bloque 7) handles invalidation there.
 
     return id_game;
 };

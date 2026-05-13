@@ -5,7 +5,6 @@ import {
     getTrendingGames,
     getNewGamesLocal,
     searchGamesByTitle,
-    createOrUpdateGame,
     getGameByIgdbId,
     getRandomGame,
     getPopularOnHitboxd as getPopularOnHitboxdModel,
@@ -14,6 +13,7 @@ import {
     upsertGameGenres,
     getStatusDistribution,
 } from './game.model.js';
+import { enqueueGameUpsert } from '../../queue/producers/games.producer.js';
 import { getRatingDistribution, getGameRatingStats } from '../reviews/reviews.model.js';
 import igdbService from '../../services/igdb.service.js';
 import searchService from '../../services/search.service.js';
@@ -36,7 +36,7 @@ const getTrending = async (req, res) => {
 
             for (const game of freshGames) {
                 game.is_trending = true;
-                await createOrUpdateGame(game);
+                await enqueueGameUpsert(game);
             }
 
             igdbCache.set('trending', { data: freshGames, ts: Date.now() });
@@ -64,9 +64,8 @@ const search = async (req, res) => {
             const igdbResults = await igdbService.searchGame(q);
 
             if (igdbResults.length > 0) {
-                Promise.all(igdbResults.map(game => createOrUpdateGame(game)))
-                    .then(() => searchService.invalidateIndex())
-                    .catch(() => {});
+                Promise.all(igdbResults.map(game => enqueueGameUpsert(game)))
+                    .catch(err => console.error('[games.enqueue]', err.message));
 
                 const igdbIds = new Set(igdbResults.map(g => g.igdb_id));
                 const combined = [...igdbResults];
@@ -118,7 +117,7 @@ const getNewReleases = async (req, res) => {
 
             if (freshGames.length > 0) {
                 for (const game of freshGames) {
-                    await createOrUpdateGame(game);
+                    await enqueueGameUpsert(game);
                 }
 
                 igdbCache.set('new_releases', { data: freshGames, ts: Date.now() });
@@ -144,7 +143,7 @@ const searchPage = async (req, res) => {
 
     try {
         const data = await igdbService.searchGamesPaginated(q, page, limit);
-        data.results.forEach(game => createOrUpdateGame(game).catch(() => {}));
+        data.results.forEach(game => enqueueGameUpsert(game).catch(err => console.error('[games.enqueue]', err.message)));
         res.json(data);
     } catch (error) {
         errorHandlerController('Error en búsqueda paginada', 500, res, error);
@@ -197,7 +196,7 @@ const getPopularOnHitboxd = async (req, res) => {
         const internalIds = new Set(internalResults.map(g => g.id_game));
         const igdbFiltered = igdbResults.filter(g => !internalIds.has(g.id_game));
 
-        Promise.all(igdbResults.map(g => createOrUpdateGame(g))).catch(() => {});
+        Promise.all(igdbResults.map(g => enqueueGameUpsert(g))).catch(err => console.error('[games.enqueue]', err.message));
 
         const combined = [...internalResults, ...igdbFiltered].slice(0, limit);
         return res.json(combined);
