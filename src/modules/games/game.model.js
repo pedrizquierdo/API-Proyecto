@@ -378,4 +378,23 @@ export {
     getStatusDistribution,
     getPopularFromCache,
     recomputeHitboxdScores,
+    clearTrendingFlags,
+    getTrendingAge,
 };
+
+// Resets is_trending on all games. Called by the IGDB refresh consumer before
+// writing the new trending set so stale entries don't linger.
+async function clearTrendingFlags() {
+    await pool.query('UPDATE games SET is_trending = FALSE WHERE is_trending = TRUE');
+}
+
+// Returns milliseconds since the most recent trending game was updated.
+// Returns Infinity when no trending games exist (fresh install).
+// Used by the worker to skip the startup hydration if the cache is already warm.
+async function getTrendingAge() {
+    const [[row]] = await pool.query(
+        'SELECT MAX(updated_at) AS last_updated FROM games WHERE is_trending = TRUE'
+    );
+    if (!row || !row.last_updated) return Infinity;
+    return Date.now() - new Date(row.last_updated).getTime();
+}

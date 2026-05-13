@@ -41,6 +41,17 @@ const QUEUES = {
     // prefetch: 1 — only one recompute runs at a time across all workers.
     // DLQ: scores.recompute.dlx
   },
+
+  IGDB_REFRESH: {
+    name: 'igdb.refresh',
+    exchange: EXCHANGES.EVENTS,
+    // Primary binding set via consume(). Additional bindings
+    // (igdb.refresh.new_releases, igdb.refresh.top_rated) added manually
+    // in startIgdbConsumer() after the queue is asserted.
+    // prefetch: 1 — prevents concurrent IGDB calls from the same worker.
+    routingKey: 'igdb.refresh.trending',
+    // DLQ: igdb.refresh.dlx
+  },
 };
 
 // Routing keys published by consumers as domain events, and by producers
@@ -51,6 +62,9 @@ const ROUTING_KEYS = {
   USER_FOLLOWED: 'user.followed',
   REVIEW_LIKED: 'review.liked',
   SCORES_RECOMPUTE_REQUESTED: 'scores.recompute.requested',
+  IGDB_REFRESH_TRENDING: 'igdb.refresh.trending',
+  IGDB_REFRESH_NEW_RELEASES: 'igdb.refresh.new_releases',
+  IGDB_REFRESH_TOP_RATED: 'igdb.refresh.top_rated',
 };
 
 export { EXCHANGES, QUEUES, ROUTING_KEYS };

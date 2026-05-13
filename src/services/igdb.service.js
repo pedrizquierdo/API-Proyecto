@@ -48,34 +48,26 @@ class IgdbService {
         }
     }
 
-    async getTrendingGames(limit = 10) {
-        const queryBody = `
+    // --- Throwing variants used by background workers ---
+    // These propagate errors so the consumer can nack the message to the DLQ.
+    // HTTP handlers use the public wrappers below that catch and return [].
+
+    async _fetchTrending(limit) {
+        const data = await this._request(`
             fields name, slug, cover.url, first_release_date, total_rating_count, summary, involved_companies.company.name, screenshots.url;
             sort total_rating_count desc;
             where cover != null & total_rating_count > 10;
             limit ${limit};
-        `;
-
-        try {
-            const data = await this._request(queryBody);
-            if (process.env.NODE_ENV !== 'production') console.log(`IGDB Respondió con ${data.length} juegos.`);
-            return this._formatGames(data);
-        } catch (error) {
-            console.error('ERROR AXIOS:', error.response?.status, error.response?.data || error.message);
-            return [];
-        }
+        `);
+        if (process.env.NODE_ENV !== 'production') console.log(`IGDB trending: ${data.length} juegos.`);
+        return this._formatGames(data);
     }
 
-    async getNewReleases(limit = 12) {
+    async _fetchNewReleases(limit) {
         const now = Math.floor(Date.now() / 1000);
-
         const SIX_MONTHS = 180 * 24 * 60 * 60;
         const ONE_YEAR   = 365 * 24 * 60 * 60;
         const TWO_YEARS  = 730 * 24 * 60 * 60;
-
-        const MIN_RATINGS_STRICT = 50;
-        const MIN_RATINGS_LOOSE  = 20;
-        const MIN_RATINGS_BARE   = 5;
 
         const buildQuery = (fromTimestamp, minRatings, lim) => `
             fields name, slug, cover.url, first_release_date, total_rating_count,
@@ -91,29 +83,54 @@ class IgdbService {
             limit ${lim};
         `;
 
-        try {
-            let results = await this._request(buildQuery(now - SIX_MONTHS, MIN_RATINGS_STRICT, limit));
+        let results = await this._request(buildQuery(now - SIX_MONTHS, 50, limit));
+        if (process.env.NODE_ENV !== 'production')
+            console.log('[IGDB] New Releases intento 1 (6m, >50): ' + results.length);
 
+        if (results.length < 6) {
+            results = await this._request(buildQuery(now - ONE_YEAR, 20, limit));
             if (process.env.NODE_ENV !== 'production')
-                console.log('[IGDB] New Releases intento 1 (6m, >50): ' + results.length);
+                console.log('[IGDB] New Releases intento 2 (1y, >20): ' + results.length);
+        }
 
-            if (results.length < 6) {
-                results = await this._request(buildQuery(now - ONE_YEAR, MIN_RATINGS_LOOSE, limit));
-                if (process.env.NODE_ENV !== 'production')
-                    console.log('[IGDB] New Releases intento 2 (1y, >20): ' + results.length);
-            }
+        if (results.length < 6) {
+            results = await this._request(buildQuery(now - TWO_YEARS, 5, limit));
+            if (process.env.NODE_ENV !== 'production')
+                console.log('[IGDB] New Releases intento 3 (2y, >5): ' + results.length);
+        }
 
-            if (results.length < 6) {
-                results = await this._request(buildQuery(now - TWO_YEARS, MIN_RATINGS_BARE, limit));
-                if (process.env.NODE_ENV !== 'production')
-                    console.log('[IGDB] New Releases intento 3 (2y, >5): ' + results.length);
-            }
+        return this._formatGames(results);
+    }
 
-            return this._formatGames(results);
+    // --- Public HTTP-safe wrappers (catch and return [] on error) ---
+
+    async getTrendingGames(limit = 10) {
+        try {
+            return await this._fetchTrending(limit);
+        } catch (error) {
+            console.error('ERROR AXIOS:', error.response?.status, error.response?.data || error.message);
+            return [];
+        }
+    }
+
+    async getNewReleases(limit = 12) {
+        try {
+            return await this._fetchNewReleases(limit);
         } catch (error) {
             console.error('Error New Releases:', error.message);
             return [];
         }
+    }
+
+    // Throws on error — intended for background workers / seed scripts.
+    async getTopRated(limit = 50) {
+        const data = await this._request(`
+            fields name, slug, cover.url, first_release_date, total_rating, total_rating_count, summary, involved_companies.company.name, screenshots.url;
+            sort total_rating desc;
+            where total_rating > 80 & cover != null & total_rating_count > 20;
+            limit ${limit};
+        `);
+        return this._formatGames(data);
     }
 
     _buildSearchBodies(query, limit) {

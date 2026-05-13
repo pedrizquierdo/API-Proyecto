@@ -4,7 +4,6 @@ import {
     getGameBySlug,
     getTrendingGames,
     getNewGamesLocal,
-    searchGamesByTitle,
     getGameByIgdbId,
     getRandomGame,
     getPopularOnHitboxd as getPopularOnHitboxdModel,
@@ -21,32 +20,29 @@ import { getRatingDistribution, getGameRatingStats } from '../reviews/reviews.mo
 import igdbService from '../../services/igdb.service.js';
 import searchService from '../../services/search.service.js';
 
-const igdbCache = new Map();
-const CACHE_TTL = 5 * 60 * 1000;
-
 const getTrending = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 10;
-        let trending = await getTrendingGames(limit);
+        const trending = await getTrendingGames(limit);
 
-        if (trending.length < limit) {
-            const cached = igdbCache.get('trending');
-            if (cached && Date.now() - cached.ts < CACHE_TTL) return res.json(cached.data);
-
-            if (process.env.NODE_ENV !== 'production') console.log(`Cache local insuficiente (${trending.length}/${limit}). Consultando IGDB...`);
-
-            const freshGames = await igdbService.getTrendingGames(limit);
-
-            for (const game of freshGames) {
-                game.is_trending = true;
-                await enqueueGameUpsert(game);
-            }
-
-            igdbCache.set('trending', { data: freshGames, ts: Date.now() });
-            trending = freshGames;
+        if (trending.length >= limit) {
+            return res.json(trending);
         }
 
-        res.json(trending);
+        // Cache miss: trigger background refresh so the next request is served
+        // from MySQL, then fall through to IGDB live data for this request.
+        publish(EXCHANGES.EVENTS, ROUTING_KEYS.IGDB_REFRESH_TRENDING, { source: 'cache_miss' })
+            .catch(err => console.error('[igdb.refresh] Fallo al publicar trending:', err.message));
+
+        if (process.env.NODE_ENV !== 'production')
+            console.log(`Cache local insuficiente (${trending.length}/${limit}). Consultando IGDB en vivo...`);
+
+        const freshGames = await igdbService.getTrendingGames(limit);
+        for (const game of freshGames) {
+            enqueueGameUpsert({ ...game, is_trending: true })
+                .catch(err => console.error('[games.enqueue]', err.message));
+        }
+        return res.json(freshGames.length ? freshGames : trending);
     } catch (error) {
         errorHandlerController("Error obteniendo tendencias", 500, res, error);
     }
@@ -109,26 +105,24 @@ const getById = async (req, res) => {
 const getNewReleases = async (req, res) => {
     try {
         const limit = 12;
-        let newGames = await getNewGamesLocal(limit);
+        const newGames = await getNewGamesLocal(limit);
 
-        if (newGames.length < limit) {
-            const cached = igdbCache.get('new_releases');
-            if (cached && Date.now() - cached.ts < CACHE_TTL) return res.json(cached.data);
-
-            if (process.env.NODE_ENV !== 'production') console.log("Pocos juegos nuevos en local. Consultando IGDB...");
-            const freshGames = await igdbService.getNewReleases(limit);
-
-            if (freshGames.length > 0) {
-                for (const game of freshGames) {
-                    await enqueueGameUpsert(game);
-                }
-
-                igdbCache.set('new_releases', { data: freshGames, ts: Date.now() });
-                newGames = freshGames;
-            }
+        if (newGames.length >= limit) {
+            return res.json(newGames);
         }
 
-        res.json(newGames);
+        // Cache miss: trigger background refresh and serve IGDB live data.
+        publish(EXCHANGES.EVENTS, ROUTING_KEYS.IGDB_REFRESH_NEW_RELEASES, { source: 'cache_miss' })
+            .catch(err => console.error('[igdb.refresh] Fallo al publicar new_releases:', err.message));
+
+        if (process.env.NODE_ENV !== 'production')
+            console.log("Pocos juegos nuevos en local. Consultando IGDB en vivo...");
+
+        const freshGames = await igdbService.getNewReleases(limit);
+        for (const game of freshGames) {
+            enqueueGameUpsert(game).catch(err => console.error('[games.enqueue]', err.message));
+        }
+        return res.json(freshGames.length ? freshGames : newGames);
     } catch (error) {
         errorHandlerController("Error obteniendo lanzamientos", 500, res, error);
     }
@@ -275,6 +269,29 @@ const getStats = async (req, res) => {
     }
 };
 
+const IGDB_REFRESH_KEYS = {
+    trending:     ROUTING_KEYS.IGDB_REFRESH_TRENDING,
+    new_releases: ROUTING_KEYS.IGDB_REFRESH_NEW_RELEASES,
+    top_rated:    ROUTING_KEYS.IGDB_REFRESH_TOP_RATED,
+};
+
+const refreshIgdb = async (req, res) => {
+    const { type } = req.params;
+    const routingKey = IGDB_REFRESH_KEYS[type];
+    if (!routingKey) {
+        return res.status(400).json({ message: 'Tipo invalido. Usar: trending, new_releases, top_rated' });
+    }
+    try {
+        await publish(EXCHANGES.EVENTS, routingKey, {
+            triggeredBy: req.user.id_user,
+            source: 'admin',
+        });
+        res.status(202).json({ message: 'Refresh de IGDB encolado' });
+    } catch (error) {
+        errorHandlerController('Error encolando refresh IGDB', 500, res, error);
+    }
+};
+
 const triggerRecomputeScores = async (req, res) => {
     try {
         await publish(EXCHANGES.EVENTS, ROUTING_KEYS.SCORES_RECOMPUTE_REQUESTED, {
@@ -298,4 +315,4 @@ const triggerReindex = async (req, res) => {
     }
 };
 
-export { getTrending, search, searchPage, getById, getBySlug, getNewReleases, getRandom, getPopularOnHitboxd, getRecommended, getExtras, getStats, triggerReindex, triggerRecomputeScores };
+export { getTrending, search, searchPage, getById, getBySlug, getNewReleases, getRandom, getPopularOnHitboxd, getRecommended, getExtras, getStats, triggerReindex, triggerRecomputeScores, refreshIgdb };

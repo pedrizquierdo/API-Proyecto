@@ -11,17 +11,6 @@ if (process.env.NODE_ENV === 'production' && !process.env.FORCE_SEED) {
 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function fetchTopRated(limit = 50) {
-    const queryBody = `
-        fields name, slug, cover.url, first_release_date, total_rating, total_rating_count, summary, involved_companies.company.name, screenshots.url;
-        sort total_rating desc;
-        where total_rating > 80 & cover != null & total_rating_count > 20;
-        limit ${limit};
-    `;
-    const data = await igdbService._request(queryBody);
-    return igdbService._formatGames(data);
-}
-
 async function seedBatch(games, label) {
     let inserted = 0;
     let updated = 0;
@@ -45,7 +34,7 @@ async function main() {
     console.log('Starting seed...');
 
     // Sequential to respect IGDB rate limits
-    const topRated = await fetchTopRated(50);
+    const topRated = await igdbService.getTopRated(50);
     await delay(300);
     const trending = await igdbService.getTrendingGames(20);
     await delay(300);
