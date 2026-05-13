@@ -7,8 +7,10 @@ import {
     getAllUserGames,
     getUserStreak,
     getUserStats,
+    buildFeedItem,
 } from './activity.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
+import { fanoutToFollowers } from '../../realtime/fanout.js';
 
 const logActivity = async (req, res) => {
     try {
@@ -29,6 +31,10 @@ const logActivity = async (req, res) => {
             is_favorite: isFavorite,
             is_liked: isLiked
         });
+
+        buildFeedItem(userId, gameId)
+            .then(item => { if (item) fanoutToFollowers(userId, 'feed:activity', item); })
+            .catch(() => {});
 
         res.json({ message: "Actividad actualizada", gameId });
 

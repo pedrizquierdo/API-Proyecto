@@ -17,6 +17,19 @@
  *   Payload: { all: true } | { id: string }
  *   Fired when the user marks one or all notifications as read (e.g. from another tab).
  *   Room: user:<userId>
+ *
+ * feed:activity
+ *   Payload: { activity_date, status, rating, is_favorite, is_liked, id_user, username,
+ *              avatar_url, id_game, title, cover_url, slug }
+ *   Fired when a followed user logs or updates a game activity.
+ *   Room: user:<followerId>  (one emit per follower via fanoutToFollowers)
+ *   Note: follows_you is omitted because it is viewer-relative; resolve on the client if needed.
+ *
+ * feed:review
+ *   Payload: { id_review, id_user, username, avatar_url, id_game, title, cover_url, content,
+ *              rating, created_at }
+ *   Fired when a followed user publishes a new review.
+ *   Room: user:<followerId>  (one emit per follower via fanoutToFollowers)
  */
 
 import { Server } from 'socket.io';
@@ -56,8 +69,14 @@ io.use((socket, next) => {
 });
 
 io.on('connection', async (socket) => {
+  const { id_user } = socket.data.user;
+
+  // feed:<userId> is reserved for potential grouped broadcasts in the future;
+  // individual fan-out currently delivers to user:<followerId> directly.
+  socket.join(`feed:${id_user}`);
+
   try {
-    const count = await getUnreadCount(socket.data.user.id_user);
+    const count = await getUnreadCount(id_user);
     socket.emit('notification:unread_count', { count });
   } catch {
     // non-fatal: client will sync on next poll or action

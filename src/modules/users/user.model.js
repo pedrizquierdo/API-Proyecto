@@ -138,6 +138,14 @@ const activateUser = (id) => {
     return updateVisibility(id, true);
 };
 
+const getFollowerIds = async (userId) => {
+    const [rows] = await pool.query(
+        'SELECT follower_id FROM follows WHERE following_id = ?',
+        [userId]
+    );
+    return rows.map(r => r.follower_id);
+};
+
 export {
     getUserByEmail,
     getUserByUsernameForAuth,
@@ -156,6 +164,7 @@ export {
     getFollowingModel,
     getUserCount,
     getUserSuggestions,
+    getFollowerIds,
 };
 
 async function getUserCount() {

@@ -164,4 +164,20 @@ const getGameRatingStats = async (gameId) => {
     };
 };
 
-export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getRatingDistribution, getGameRatingStats, getReviewAuthorId };
+const getReviewForFeed = async (reviewId) => {
+    const [[row]] = await pool.query(`
+        SELECT
+            r.id_review, r.content, r.created_at,
+            u.id_user, u.username, u.avatar_url,
+            g.id_game, g.title, g.cover_url,
+            ug.rating
+        FROM reviews r
+        JOIN users u ON r.id_user = u.id_user
+        JOIN games g ON r.id_game = g.id_game
+        LEFT JOIN user_games ug ON r.id_user = ug.id_user AND r.id_game = ug.id_game
+        WHERE r.id_review = ?
+    `, [reviewId]);
+    return row ?? null;
+};
+
+export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getRatingDistribution, getGameRatingStats, getReviewAuthorId, getReviewForFeed };

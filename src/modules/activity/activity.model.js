@@ -171,6 +171,21 @@ const getUserStats = async (userId) => {
     };
 };
 
+const buildFeedItem = async (userId, gameId) => {
+    const [[row]] = await pool.query(`
+        SELECT
+            ug.updated_at AS activity_date,
+            ug.status, ug.rating, ug.is_favorite, ug.is_liked,
+            u.id_user, u.username, u.avatar_url,
+            g.id_game, g.title, g.cover_url, g.slug
+        FROM user_games ug
+        JOIN users u ON ug.id_user = u.id_user
+        JOIN games g ON ug.id_game = g.id_game
+        WHERE ug.id_user = ? AND ug.id_game = ?
+    `, [userId, gameId]);
+    return row ?? null;
+};
+
 export {
     upsertActivity,
     getActivityByGame,
@@ -180,4 +195,5 @@ export {
     getAllUserGames,
     getUserStreak,
     getUserStats,
+    buildFeedItem,
 };

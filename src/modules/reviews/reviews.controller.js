@@ -1,10 +1,11 @@
 import { z } from "zod";
-import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getReviewAuthorId } from './reviews.model.js';
+import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getReviewAuthorId, getReviewForFeed } from './reviews.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 import validate from '../../utils/validate.js';
 import { upsertActivity } from '../activity/activity.model.js';
 import { createNotification, getUnreadCount } from '../notifications/notifications.model.js';
 import { emitToUser } from '../../realtime/io.js';
+import { fanoutToFollowers } from '../../realtime/fanout.js';
 
 export const validateAddReview = validate(z.object({
     id_game: z.number().int().positive("id_game debe ser un entero positivo"),
@@ -28,6 +29,10 @@ const addReview = async (req, res) => {
         if (rating !== undefined) {
             await upsertActivity(id_user, id_game, { rating });
         }
+
+        getReviewForFeed(reviewId)
+            .then(item => { if (item) fanoutToFollowers(id_user, 'feed:review', item); })
+            .catch(() => {});
 
         res.status(201).json({ message: "Reseña publicada", id: reviewId });
     } catch (error) {
