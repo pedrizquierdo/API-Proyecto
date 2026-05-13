@@ -1,6 +1,14 @@
 /**
  * Socket.io singleton. Attach to an http.Server before accepting connections.
  *
+ * Room membership is ephemeral. If the server restarts, all rooms are cleared.
+ * Clients are responsible for re-joining game rooms after a reconnect by re-emitting
+ * game:join. The server intentionally does not persist room membership.
+ *
+ * Convention for game-room events: every event includes an actor_id field so the
+ * client that originated the action can discard the event when actor_id matches
+ * the current user (avoiding double-application of an optimistic update).
+ *
  * Emitted events (server -> client):
  *
  * notification:new
@@ -30,6 +38,25 @@
  *              rating, created_at }
  *   Fired when a followed user publishes a new review.
  *   Room: user:<followerId>  (one emit per follower via fanoutToFollowers)
+ *
+ * review:like_changed
+ *   Payload: { id_review: number, count: number, actor_id: number }
+ *   Fired when any user likes or unlikes a review. Broadcast to all clients viewing that game.
+ *   actor_id identifies who triggered the change; clients should ignore the event when
+ *   actor_id === current_user_id to avoid conflicting with their own optimistic update.
+ *   Room: game:<gameId>
+ *
+ * review:created
+ *   Payload: { id_review, id_user, username, avatar_url, id_game, title, cover_url, content,
+ *              rating, created_at }
+ *   Fired when a review is published. Clients on the game page can prepend it to the list.
+ *   actor_id is id_user in the payload; discard if actor_id === current_user_id.
+ *   Room: game:<gameId>
+ *
+ * review:deleted
+ *   Payload: { id_review: number }
+ *   Fired after a review is removed. Clients should remove it from the list if present.
+ *   Room: game:<gameId>
  */
 
 import { Server } from 'socket.io';
@@ -75,6 +102,16 @@ io.on('connection', async (socket) => {
   // individual fan-out currently delivers to user:<followerId> directly.
   socket.join(`feed:${id_user}`);
 
+  socket.on('game:join', ({ gameId } = {}) => {
+    if (!Number.isInteger(gameId) || gameId <= 0) return;
+    socket.join(`game:${gameId}`);
+  });
+
+  socket.on('game:leave', ({ gameId } = {}) => {
+    if (!Number.isInteger(gameId) || gameId <= 0) return;
+    socket.leave(`game:${gameId}`);
+  });
+
   try {
     const count = await getUnreadCount(id_user);
     socket.emit('notification:unread_count', { count });
@@ -91,4 +128,8 @@ function emitToUser(userId, event, payload) {
   io.to(`user:${userId}`).emit(event, payload);
 }
 
-export { io, attachIo, emitToUser };
+function emitToGame(gameId, event, payload) {
+  io.to(`game:${gameId}`).emit(event, payload);
+}
+
+export { io, attachIo, emitToUser, emitToGame };

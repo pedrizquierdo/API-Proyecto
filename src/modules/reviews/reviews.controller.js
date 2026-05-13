@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getReviewAuthorId, getReviewForFeed } from './reviews.model.js';
+import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getReviewAuthorId, getReviewGameId, getReviewForFeed } from './reviews.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 import validate from '../../utils/validate.js';
 import { upsertActivity } from '../activity/activity.model.js';
 import { createNotification, getUnreadCount } from '../notifications/notifications.model.js';
-import { emitToUser } from '../../realtime/io.js';
+import { emitToUser, emitToGame } from '../../realtime/io.js';
 import { fanoutToFollowers } from '../../realtime/fanout.js';
 
 export const validateAddReview = validate(z.object({
@@ -31,7 +31,11 @@ const addReview = async (req, res) => {
         }
 
         getReviewForFeed(reviewId)
-            .then(item => { if (item) fanoutToFollowers(id_user, 'feed:review', item); })
+            .then(item => {
+                if (!item) return;
+                fanoutToFollowers(id_user, 'feed:review', item);
+                emitToGame(id_game, 'review:created', item);
+            })
             .catch(() => {});
 
         res.status(201).json({ message: "Reseña publicada", id: reviewId });
@@ -68,8 +72,10 @@ const removeReview = async (req, res) => {
         const { id_user, role } = req.user;
         const { reviewId } = req.params;
 
-        let success = false;
+        // Must be fetched before deletion; row is gone afterward.
+        const gameId = await getReviewGameId(reviewId);
 
+        let success = false;
         if (role === 'admin') {
             success = await deleteReviewByAdmin(reviewId);
         } else {
@@ -78,7 +84,9 @@ const removeReview = async (req, res) => {
         if (!success) {
             return errorHandlerController("Reseña no encontrada o no tienes permiso", 403, res);
         }
+
         res.json({ message: "Reseña eliminada correctamente" });
+        if (gameId) emitToGame(gameId, 'review:deleted', { id_review: parseInt(reviewId) });
     } catch (error) {
         return errorHandlerController("Error eliminando reseña", 500, res, error);
     }
@@ -131,7 +139,10 @@ const toggleReviewLike = async (req, res) => {
             liked = true;
         }
 
-        const count = await getReviewLikesCount(reviewId);
+        const [count, gameId] = await Promise.all([
+            getReviewLikesCount(reviewId),
+            getReviewGameId(reviewId),
+        ]);
 
         if (liked) {
             const authorId = await getReviewAuthorId(reviewId);
@@ -139,13 +150,16 @@ const toggleReviewLike = async (req, res) => {
                 createNotification(authorId, id_user, 'review_like', parseInt(reviewId))
                     .then(notif => Promise.all([
                         emitToUser(authorId, 'notification:new', notif),
-                        getUnreadCount(authorId).then(count => emitToUser(authorId, 'notification:unread_count', { count })),
+                        getUnreadCount(authorId).then(c => emitToUser(authorId, 'notification:unread_count', { count: c })),
                     ]))
                     .catch(() => {});
             }
         }
 
         res.json({ liked, count });
+        // Emit to all clients viewing this game, including the originator.
+        // The client discards the event when actor_id === current_user_id (optimistic update already applied).
+        if (gameId) emitToGame(gameId, 'review:like_changed', { id_review: parseInt(reviewId), count, actor_id: id_user });
     } catch (error) {
         return errorHandlerController("Error al dar like a la reseña", 500, res, error);
     }

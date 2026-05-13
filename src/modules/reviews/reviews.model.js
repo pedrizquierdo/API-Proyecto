@@ -49,6 +49,14 @@ const getReviewAuthorId = async (reviewId) => {
     return row?.id_user ?? null;
 };
 
+const getReviewGameId = async (reviewId) => {
+    const [[row]] = await pool.query(
+        'SELECT id_game FROM reviews WHERE id_review = ?',
+        [reviewId]
+    );
+    return row?.id_game ?? null;
+};
+
 const createReport = async (userId, reviewId, reason) => {
     const [result] = await pool.query(
         "INSERT INTO review_reports (id_user, id_review, reason) VALUES (?, ?, ?)",
@@ -180,4 +188,4 @@ const getReviewForFeed = async (reviewId) => {
     return row ?? null;
 };
 
-export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getRatingDistribution, getGameRatingStats, getReviewAuthorId, getReviewForFeed };
+export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getRatingDistribution, getGameRatingStats, getReviewAuthorId, getReviewGameId, getReviewForFeed };
