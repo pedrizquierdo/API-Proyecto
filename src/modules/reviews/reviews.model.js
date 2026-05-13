@@ -172,6 +172,24 @@ const getGameRatingStats = async (gameId) => {
     };
 };
 
+const getReportedReviewSummary = async (reviewId) => {
+    const [[row]] = await pool.query(`
+        SELECT
+            r.id_review, r.content, r.created_at,
+            u.username AS review_username,
+            g.title AS game_title, g.cover_url AS game_cover_url,
+            COUNT(rr.id_report) AS report_count,
+            GROUP_CONCAT(DISTINCT rr.reason SEPARATOR ', ') AS all_reasons
+        FROM reviews r
+        JOIN review_reports rr ON r.id_review = rr.id_review
+        JOIN users u ON r.id_user = u.id_user
+        JOIN games g ON r.id_game = g.id_game
+        WHERE r.id_review = ? AND rr.status = 'pending'
+        GROUP BY r.id_review
+    `, [reviewId]);
+    return row ?? null;
+};
+
 const getReviewForFeed = async (reviewId) => {
     const [[row]] = await pool.query(`
         SELECT
@@ -188,4 +206,4 @@ const getReviewForFeed = async (reviewId) => {
     return row ?? null;
 };
 
-export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getRatingDistribution, getGameRatingStats, getReviewAuthorId, getReviewGameId, getReviewForFeed };
+export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getRatingDistribution, getGameRatingStats, getReviewAuthorId, getReviewGameId, getReviewForFeed, getReportedReviewSummary };

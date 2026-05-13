@@ -68,6 +68,19 @@
  *   disconnect). Debounced to at most one emission per room per second so rapid
  *   join/leave bursts do not flood clients.
  *   Room: game:<gameId>
+ *
+ * moderation:report_new
+ *   Payload: { id_review, content, created_at, review_username, game_title, game_cover_url,
+ *              report_count, all_reasons }
+ *   Fired when a user submits a new report. Shape mirrors getReportedReviewsList rows so
+ *   the admin dashboard can append the item without a full re-fetch.
+ *   Room: admin
+ *
+ * moderation:resolved
+ *   Payload: { id_review: number }
+ *   Fired after a reported review is approved (reports dismissed) or deleted by an admin.
+ *   Admin dashboards remove the matching item on receipt.
+ *   Room: admin
  */
 
 import { Server } from 'socket.io';
@@ -127,6 +140,15 @@ io.use((socket, next) => {
     };
 
     socket.join(`user:${decoded.id_user}`);
+
+    // Admin room is joined at handshake time so the role encoded in the JWT
+    // is the authority. If a user is promoted to admin mid-session, the 'admin'
+    // room subscription only takes effect on the next reconnect (new handshake,
+    // fresh JWT). The server does not re-evaluate role after the initial connection.
+    if (decoded.role === 'admin') {
+      socket.join('admin');
+    }
+
     next();
   });
 });
@@ -185,4 +207,8 @@ function emitToGame(gameId, event, payload) {
   io.to(`game:${gameId}`).emit(event, payload);
 }
 
-export { io, attachIo, emitToUser, emitToGame };
+function emitToAdmins(event, payload) {
+  io.to('admin').emit(event, payload);
+}
+
+export { io, attachIo, emitToUser, emitToGame, emitToAdmins };

@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getReviewAuthorId, getReviewGameId, getReviewForFeed } from './reviews.model.js';
+import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getReviewAuthorId, getReviewGameId, getReviewForFeed, getReportedReviewSummary } from './reviews.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 import validate from '../../utils/validate.js';
 import { upsertActivity } from '../activity/activity.model.js';
 import { createNotification, getUnreadCount } from '../notifications/notifications.model.js';
-import { emitToUser, emitToGame } from '../../realtime/io.js';
+import { emitToUser, emitToGame, emitToAdmins } from '../../realtime/io.js';
 import { fanoutToFollowers } from '../../realtime/fanout.js';
 
 export const validateAddReview = validate(z.object({
@@ -87,6 +87,7 @@ const removeReview = async (req, res) => {
 
         res.json({ message: "Reseña eliminada correctamente" });
         if (gameId) emitToGame(gameId, 'review:deleted', { id_review: parseInt(reviewId) });
+        if (role === 'admin') emitToAdmins('moderation:resolved', { id_review: parseInt(reviewId) });
     } catch (error) {
         return errorHandlerController("Error eliminando reseña", 500, res, error);
     }
@@ -106,6 +107,7 @@ const approveReview = async (req, res) => {
         const { reviewId } = req.params;
         await dismissReports(reviewId);
         res.json({ message: "Reportes descartados, reseña aprobada." });
+        emitToAdmins('moderation:resolved', { id_review: parseInt(reviewId) });
     } catch (error) {
         return errorHandlerController("Error aprobando reseña", 500, res, error);
     }
@@ -118,7 +120,11 @@ const reportReview = async (req, res) => {
         const { reason } = req.body;
 
         await createReport(id_user, reviewId, reason);
-        
+
+        getReportedReviewSummary(parseInt(reviewId))
+            .then(summary => { if (summary) emitToAdmins('moderation:report_new', summary); })
+            .catch(() => {});
+
         res.json({ message: "Reporte enviado. Gracias por ayudar a la comunidad." });
     } catch (error) {
         return errorHandlerController("Error enviando reporte", 500, res, error);
