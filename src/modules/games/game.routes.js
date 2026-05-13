@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { getTrending, search, searchPage, getById, getBySlug, getNewReleases, getRandom, getPopularOnHitboxd, getRecommended, getExtras, getStats } from './game.controller.js';
-import { verifyToken } from '../../middlewares/authMiddleware.js';
+import { getTrending, search, searchPage, getById, getBySlug, getNewReleases, getRandom, getPopularOnHitboxd, getRecommended, getExtras, getStats, triggerReindex } from './game.controller.js';
+import { verifyToken, verifyAdmin } from '../../middlewares/authMiddleware.js';
 
 const router = Router();
 
@@ -10,6 +10,8 @@ router.get('/search', search);
 router.get('/search-page', searchPage);
 router.get('/random', verifyToken, getRandom);
 router.get('/recommended', verifyToken, getRecommended);
+
+router.post('/admin/reindex', verifyToken, verifyAdmin, triggerReindex);
 
 router.get('/popular', getPopularOnHitboxd);
 router.get('/slug/:slug', getBySlug);

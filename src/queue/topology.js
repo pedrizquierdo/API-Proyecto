@@ -14,11 +14,22 @@ const QUEUES = {
     // TODO: add x-dead-letter-routing-key support to rabbit.js consume() if per-queue
     // DLX routing keys are needed (currently inherits original routing key).
   },
+
+  SEARCH_REINDEX: {
+    name: 'search.reindex',
+    exchange: EXCHANGES.EVENTS,
+    // Primary binding set via consume(). Second binding (SEARCH_REINDEX_REQUESTED)
+    // is added manually in startSearchConsumer() after the queue is asserted.
+    routingKey: 'game.upserted',
+    // DLQ: search.reindex.dlx
+  },
 };
 
-// Routing keys that are published by consumers as domain events (not queue bindings):
+// Routing keys published by consumers as domain events, and by producers
+// for commands that are not tied to a specific queue binding.
 const ROUTING_KEYS = {
   GAME_UPSERTED: 'game.upserted',
+  SEARCH_REINDEX_REQUESTED: 'search.reindex.requested',
 };
 
 export { EXCHANGES, QUEUES, ROUTING_KEYS };

@@ -14,6 +14,8 @@ import {
     getStatusDistribution,
 } from './game.model.js';
 import { enqueueGameUpsert } from '../../queue/producers/games.producer.js';
+import { publish } from '../../queue/rabbit.js';
+import { EXCHANGES, ROUTING_KEYS } from '../../queue/topology.js';
 import { getRatingDistribution, getGameRatingStats } from '../reviews/reviews.model.js';
 import igdbService from '../../services/igdb.service.js';
 import searchService from '../../services/search.service.js';
@@ -260,4 +262,15 @@ const getStats = async (req, res) => {
     }
 };
 
-export { getTrending, search, searchPage, getById, getBySlug, getNewReleases, getRandom, getPopularOnHitboxd, getRecommended, getExtras, getStats };
+const triggerReindex = async (req, res) => {
+    try {
+        await publish(EXCHANGES.EVENTS, ROUTING_KEYS.SEARCH_REINDEX_REQUESTED, {
+            triggeredBy: req.user.id_user,
+        });
+        res.status(202).json({ message: 'Reindexacion encolada' });
+    } catch (error) {
+        errorHandlerController('Error encolando reindex', 500, res, error);
+    }
+};
+
+export { getTrending, search, searchPage, getById, getBySlug, getNewReleases, getRandom, getPopularOnHitboxd, getRecommended, getExtras, getStats, triggerReindex };
