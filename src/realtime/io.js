@@ -9,6 +9,10 @@
  * client that originated the action can discard the event when actor_id matches
  * the current user (avoiding double-application of an optimistic update).
  *
+ * Privacy note: game:presence only emits a numeric count, never a list of usernames
+ * or avatars. A "who is watching" feature would require an explicit opt-in flow and
+ * must filter users where users.is_visible = true before exposing identities.
+ *
  * Emitted events (server -> client):
  *
  * notification:new
@@ -57,6 +61,13 @@
  *   Payload: { id_review: number }
  *   Fired after a review is removed. Clients should remove it from the list if present.
  *   Room: game:<gameId>
+ *
+ * game:presence
+ *   Payload: { gameId: number, count: number }
+ *   Fired to all clients in a game room when the viewer count changes (join, leave, or
+ *   disconnect). Debounced to at most one emission per room per second so rapid
+ *   join/leave bursts do not flood clients.
+ *   Room: game:<gameId>
  */
 
 import { Server } from 'socket.io';
@@ -71,6 +82,31 @@ const io = new Server({
     credentials: true,
   },
 });
+
+// TODO: adapter Redis para horizontal scaling
+// When running multiple Node processes, io.sockets.adapter.rooms only reflects
+// sockets connected to the current process. Switch to @socket.io/redis-adapter
+// so presence counts are accurate across all instances.
+const presenceTimers = new Map();
+
+function schedulePresenceEmit(gameId) {
+  if (presenceTimers.has(gameId)) {
+    clearTimeout(presenceTimers.get(gameId));
+  }
+  presenceTimers.set(
+    gameId,
+    setTimeout(() => {
+      presenceTimers.delete(gameId);
+      // Read count inside the callback, not at schedule time, so that:
+      // - rapid join/leave bursts resolve to the final stable value, and
+      // - disconnecting sockets have fully left the room by the time this runs
+      //   (Socket.io completes room cleanup within the same event-loop tick),
+      //   so no manual -1 adjustment is needed here.
+      const count = io.sockets.adapter.rooms.get(`game:${gameId}`)?.size ?? 0;
+      io.to(`game:${gameId}`).emit('game:presence', { gameId, count });
+    }, 1000)
+  );
+}
 
 io.use((socket, next) => {
   const rawCookie = socket.handshake.headers.cookie;
@@ -105,11 +141,28 @@ io.on('connection', async (socket) => {
   socket.on('game:join', ({ gameId } = {}) => {
     if (!Number.isInteger(gameId) || gameId <= 0) return;
     socket.join(`game:${gameId}`);
+    schedulePresenceEmit(gameId);
   });
 
   socket.on('game:leave', ({ gameId } = {}) => {
     if (!Number.isInteger(gameId) || gameId <= 0) return;
     socket.leave(`game:${gameId}`);
+    schedulePresenceEmit(gameId);
+  });
+
+  socket.on('disconnecting', () => {
+    // 'disconnecting' fires while socket.rooms still contains the joined rooms.
+    // We schedule via schedulePresenceEmit rather than emitting immediately:
+    // by the time the 1000ms timer fires the socket has fully disconnected and
+    // the adapter has removed it from the room, so the count is already correct
+    // without subtracting 1 manually.
+    for (const room of socket.rooms) {
+      if (!room.startsWith('game:')) continue;
+      const gameId = parseInt(room.slice(5), 10);
+      if (Number.isInteger(gameId) && gameId > 0) {
+        schedulePresenceEmit(gameId);
+      }
+    }
   });
 
   try {
