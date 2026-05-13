@@ -1,5 +1,6 @@
 import { getNotifications, getUnreadCount, markAllRead, markOneRead } from './notifications.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
+import { emitToUser } from '../../realtime/io.js';
 
 const getMyNotifications = async (req, res) => {
     try {
@@ -16,8 +17,10 @@ const getMyNotifications = async (req, res) => {
 
 const readAll = async (req, res) => {
     try {
-        await markAllRead(req.user.id_user);
-        res.json({ message: 'Todas las notificaciones marcadas como leídas' });
+        const { id_user } = req.user;
+        await markAllRead(id_user);
+        emitToUser(id_user, 'notification:read', { all: true });
+        res.json({ message: 'Todas las notificaciones marcadas como leidas' });
     } catch (error) {
         errorHandlerController('Error marcando notificaciones', 500, res, error);
     }
@@ -25,10 +28,12 @@ const readAll = async (req, res) => {
 
 const readOne = async (req, res) => {
     try {
-        await markOneRead(req.params.id, req.user.id_user);
-        res.json({ message: 'Notificación leída' });
+        const { id_user } = req.user;
+        await markOneRead(req.params.id, id_user);
+        emitToUser(id_user, 'notification:read', { id: req.params.id });
+        res.json({ message: 'Notificacion leida' });
     } catch (error) {
-        errorHandlerController('Error marcando notificación', 500, res, error);
+        errorHandlerController('Error marcando notificacion', 500, res, error);
     }
 };
 

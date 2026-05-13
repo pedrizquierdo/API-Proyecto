@@ -18,20 +18,30 @@ pool.query(`
         console.warn('[Notifications] Table init:', err.message);
 });
 
+const fetchNotificationRow = async (id) => {
+    const [[row]] = await pool.query(`
+        SELECT n.id_notification, n.type, n.id_reference, n.is_read, n.created_at,
+               u.username AS actor_username, u.avatar_url AS actor_avatar
+        FROM notifications n
+        JOIN users u ON n.id_actor = u.id_user
+        WHERE n.id_notification = ?
+    `, [id]);
+    return row;
+};
+
 const createNotification = async (userId, actorId, type, referenceId = null) => {
-    // Avoid duplicate unread notifications for the same event
     const [[existing]] = await pool.query(`
         SELECT id_notification FROM notifications
         WHERE id_user = ? AND id_actor = ? AND type = ? AND id_reference <=> ? AND is_read = 0
         LIMIT 1
     `, [userId, actorId, type, referenceId]);
-    if (existing) return existing.id_notification;
+    if (existing) return fetchNotificationRow(existing.id_notification);
 
     const [result] = await pool.query(
         `INSERT INTO notifications (id_user, id_actor, type, id_reference) VALUES (?, ?, ?, ?)`,
         [userId, actorId, type, referenceId]
     );
-    return result.insertId;
+    return fetchNotificationRow(result.insertId);
 };
 
 const getNotifications = async (userId, limit = 30) => {

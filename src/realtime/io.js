@@ -1,7 +1,29 @@
+/**
+ * Socket.io singleton. Attach to an http.Server before accepting connections.
+ *
+ * Emitted events (server -> client):
+ *
+ * notification:new
+ *   Payload: { id_notification, type, id_reference, is_read, created_at, actor_username, actor_avatar }
+ *   Fired when a new notification is created for a user (follow, review_like, ...).
+ *   Room: user:<userId>
+ *
+ * notification:unread_count
+ *   Payload: { count: number }
+ *   Fired after notification:new and on initial connection so the client badge stays in sync.
+ *   Room: user:<userId>
+ *
+ * notification:read
+ *   Payload: { all: true } | { id: string }
+ *   Fired when the user marks one or all notifications as read (e.g. from another tab).
+ *   Room: user:<userId>
+ */
+
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import cookiePkg from 'cookie';
 import { allowedOrigins } from '../config/origins.js';
+import { getUnreadCount } from '../modules/notifications/notifications.model.js';
 
 const io = new Server({
   cors: {
@@ -31,6 +53,15 @@ io.use((socket, next) => {
     socket.join(`user:${decoded.id_user}`);
     next();
   });
+});
+
+io.on('connection', async (socket) => {
+  try {
+    const count = await getUnreadCount(socket.data.user.id_user);
+    socket.emit('notification:unread_count', { count });
+  } catch {
+    // non-fatal: client will sync on next poll or action
+  }
 });
 
 function attachIo(server) {

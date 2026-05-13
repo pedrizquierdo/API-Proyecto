@@ -3,7 +3,8 @@ import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createR
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 import validate from '../../utils/validate.js';
 import { upsertActivity } from '../activity/activity.model.js';
-import { createNotification } from '../notifications/notifications.model.js';
+import { createNotification, getUnreadCount } from '../notifications/notifications.model.js';
+import { emitToUser } from '../../realtime/io.js';
 
 export const validateAddReview = validate(z.object({
     id_game: z.number().int().positive("id_game debe ser un entero positivo"),
@@ -130,7 +131,12 @@ const toggleReviewLike = async (req, res) => {
         if (liked) {
             const authorId = await getReviewAuthorId(reviewId);
             if (authorId && authorId !== id_user) {
-                createNotification(authorId, id_user, 'review_like', parseInt(reviewId)).catch(() => {});
+                createNotification(authorId, id_user, 'review_like', parseInt(reviewId))
+                    .then(notif => Promise.all([
+                        emitToUser(authorId, 'notification:new', notif),
+                        getUnreadCount(authorId).then(count => emitToUser(authorId, 'notification:unread_count', { count })),
+                    ]))
+                    .catch(() => {});
             }
         }
 
