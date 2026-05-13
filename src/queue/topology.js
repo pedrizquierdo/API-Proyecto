@@ -52,6 +52,24 @@ const QUEUES = {
     routingKey: 'igdb.refresh.trending',
     // DLQ: igdb.refresh.dlx
   },
+
+  FEED_FANOUT: {
+    name: 'feed.fanout',
+    exchange: EXCHANGES.EVENTS,
+    // Primary binding: activity.created (set via consume()).
+    // Additional bindings added manually in startFeedConsumer():
+    //   review.created, activity.deleted, review.deleted
+    routingKey: 'activity.created',
+    // DLQ: feed.fanout.dlx
+  },
+
+  FEED_CLEANUP: {
+    name: 'feed.cleanup',
+    exchange: EXCHANGES.EVENTS,
+    routingKey: 'feed.cleanup.requested',
+    // prefetch: 1 — one cleanup batch at a time.
+    // DLQ: feed.cleanup.dlx
+  },
 };
 
 // Routing keys published by consumers as domain events, and by producers
@@ -65,6 +83,11 @@ const ROUTING_KEYS = {
   IGDB_REFRESH_TRENDING: 'igdb.refresh.trending',
   IGDB_REFRESH_NEW_RELEASES: 'igdb.refresh.new_releases',
   IGDB_REFRESH_TOP_RATED: 'igdb.refresh.top_rated',
+  ACTIVITY_CREATED: 'activity.created',
+  REVIEW_CREATED_FEED: 'review.created',
+  ACTIVITY_DELETED_FEED: 'activity.deleted',
+  REVIEW_DELETED_FEED: 'review.deleted',
+  FEED_CLEANUP_REQUESTED: 'feed.cleanup.requested',
 };
 
 export { EXCHANGES, QUEUES, ROUTING_KEYS };

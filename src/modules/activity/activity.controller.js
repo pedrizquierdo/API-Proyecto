@@ -9,8 +9,9 @@ import {
     getUserStats,
     buildFeedItem,
 } from './activity.model.js';
+import { getFeedFor, hasFeedItemsFor } from './feed.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
-import { fanoutToFollowers } from '../../realtime/fanout.js';
+import { emitActivityCreated, emitActivityDeleted } from '../../queue/producers/feed.producer.js';
 
 const logActivity = async (req, res) => {
     try {
@@ -32,8 +33,14 @@ const logActivity = async (req, res) => {
             is_liked: isLiked
         });
 
+        // Build payload synchronously while the DB row is hot, then hand off to
+        // the queue — the consumer handles DB fan-out and Socket.io pushes.
         buildFeedItem(userId, gameId)
-            .then(item => { if (item) fanoutToFollowers(userId, 'feed:activity', item); })
+            .then(item => {
+                if (!item) return;
+                emitActivityCreated({ id_activity: gameId, id_user: userId, id_game: gameId, payload: item })
+                    .catch(err => console.error('[event]', err.message));
+            })
             .catch(() => {});
 
         res.json({ message: "Actividad actualizada", gameId });
@@ -76,9 +83,24 @@ const checkStatus = async (req, res) => {
 
 const getFeed = async (req, res) => {
     try {
-        const userId = req.user.id_user; 
-        const feed = await getFriendsFeed(userId, 10);
-        res.json(feed);
+        const userId = req.user.id_user;
+        const limit    = Math.min(parseInt(req.query.limit) || 20, 50);
+        const beforeId = req.query.before ? parseInt(req.query.before) : null;
+
+        // Fast path: serve from the pre-computed fan-out table.
+        const items = await getFeedFor(userId, limit, beforeId);
+        if (items.length > 0) {
+            return res.json(items);
+        }
+
+        // Fallback: new user (no fan-out rows yet) on the first page only.
+        // If beforeId is set we're paginating and there simply are no more items.
+        if (!beforeId && !(await hasFeedItemsFor(userId))) {
+            const fallback = await getFriendsFeed(userId, limit);
+            return res.json(fallback);
+        }
+
+        return res.json([]);
     } catch (error) {
         return errorHandlerController("Error cargando feed de amigos", 500, res, error);
     }
@@ -114,4 +136,21 @@ const getStats = async (req, res) => {
     }
 };
 
-export { logActivity, getMyWatchlist, checkStatus, getFeed, getUserLibrary, getStreak, getStats };
+const removeActivity = async (req, res) => {
+    try {
+        const userId = req.user.id_user;
+        const { gameId } = req.params;
+
+        await deleteActivity(userId, gameId);
+
+        // Fire-and-forget: remove feed_items for this activity from all followers.
+        emitActivityDeleted({ id_user: userId, id_game: parseInt(gameId) })
+            .catch(err => console.error('[event]', err.message));
+
+        res.json({ message: "Actividad eliminada" });
+    } catch (error) {
+        return errorHandlerController("Error eliminando actividad", 500, res, error);
+    }
+};
+
+export { logActivity, getMyWatchlist, checkStatus, getFeed, getUserLibrary, getStreak, getStats, removeActivity };

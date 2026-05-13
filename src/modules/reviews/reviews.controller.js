@@ -5,7 +5,7 @@ import validate from '../../utils/validate.js';
 import { upsertActivity } from '../activity/activity.model.js';
 import { emitToGame, emitToAdmins } from '../../realtime/io.js';
 import { emitReviewLiked } from '../../queue/producers/events.producer.js';
-import { fanoutToFollowers } from '../../realtime/fanout.js';
+import { emitReviewCreatedForFeed, emitReviewDeletedForFeed } from '../../queue/producers/feed.producer.js';
 
 export const validateAddReview = validate(z.object({
     id_game: z.number().int().positive("id_game debe ser un entero positivo"),
@@ -33,7 +33,10 @@ const addReview = async (req, res) => {
         getReviewForFeed(reviewId)
             .then(item => {
                 if (!item) return;
-                fanoutToFollowers(id_user, 'feed:review', item);
+                // Queue-based fan-out: consumer handles feed_items + Socket.io pushes to followers.
+                emitReviewCreatedForFeed({ id_review: reviewId, id_user, id_game, payload: item })
+                    .catch(err => console.error('[event]', err.message));
+                // Direct Socket.io emit for clients currently on the game page.
                 emitToGame(id_game, 'review:created', item);
             })
             .catch(() => {});
@@ -88,6 +91,8 @@ const removeReview = async (req, res) => {
         res.json({ message: "Reseña eliminada correctamente" });
         if (gameId) emitToGame(gameId, 'review:deleted', { id_review: parseInt(reviewId) });
         if (role === 'admin') emitToAdmins('moderation:resolved', { id_review: parseInt(reviewId) });
+        emitReviewDeletedForFeed({ id_review: parseInt(reviewId) })
+            .catch(err => console.error('[event]', err.message));
     } catch (error) {
         return errorHandlerController("Error eliminando reseña", 500, res, error);
     }
