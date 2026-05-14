@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createList, getListsByUser, getListDetails, addGameToList, deleteList } from './lists.model.js';
+import { createList, getListsByUser, getListDetails, addGameToList, deleteList, getPopularLists } from './lists.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 import validate from '../../utils/validate.js';
 
@@ -78,4 +78,14 @@ const removeList = async (req, res) => {
     }
 };
 
-export { create, getUserLists, getOneList, addGame, removeList };
+const getPopular = async (req, res) => {
+    try {
+        const limit = Math.min(parseInt(req.query.limit) || 10, 20);
+        const lists = await getPopularLists(limit);
+        res.json(lists);
+    } catch (error) {
+        return errorHandlerController("Error obteniendo listas populares", 500, res, error);
+    }
+};
+
+export { create, getUserLists, getOneList, addGame, removeList, getPopular };

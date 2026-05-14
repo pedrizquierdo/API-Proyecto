@@ -54,4 +54,37 @@ const deleteList = async (listId, userId) => {
     return result.affectedRows > 0;
 };
 
-export { createList, getListsByUser, getListDetails, addGameToList, deleteList };
+const getPopularLists = async (limit = 10) => {
+    const [rows] = await pool.query(`
+        SELECT
+            l.id_list,
+            l.title,
+            l.description,
+            l.list_type,
+            l.id_user,
+            u.username,
+            u.avatar_url,
+            COUNT(DISTINCT lk.id_like) AS like_count,
+            COUNT(DISTINCT li.id_item) AS game_count,
+            GROUP_CONCAT(DISTINCT g.cover_url ORDER BY li.position ASC SEPARATOR '||') AS cover_urls
+        FROM lists l
+        JOIN users u ON l.id_user = u.id_user
+        LEFT JOIN likes lk ON lk.id_list = l.id_list
+        LEFT JOIN list_items li ON li.id_list = l.id_list
+        LEFT JOIN games g ON li.id_game = g.id_game
+        WHERE l.is_public = TRUE
+        GROUP BY l.id_list, l.title, l.description, l.list_type, l.id_user, u.username, u.avatar_url
+        ORDER BY like_count DESC, l.created_at DESC
+        LIMIT ?
+    `, [limit]);
+
+    return rows.map(row => ({
+        ...row,
+        like_count: Number(row.like_count),
+        game_count: Number(row.game_count),
+        covers: row.cover_urls ? row.cover_urls.split('||').filter(Boolean).slice(0, 4) : [],
+        cover_urls: undefined,
+    }));
+};
+
+export { createList, getListsByUser, getListDetails, addGameToList, deleteList, getPopularLists };
