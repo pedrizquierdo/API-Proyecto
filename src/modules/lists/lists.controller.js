@@ -80,7 +80,7 @@ const removeList = async (req, res) => {
 
 const getPopular = async (req, res) => {
     try {
-        const limit = Math.min(parseInt(req.query.limit) || 10, 20);
+        const limit = Math.min(parseInt(req.query.limit) || 6, 6);
         const lists = await getPopularLists(limit);
         res.json(lists);
     } catch (error) {

@@ -54,7 +54,7 @@ const deleteList = async (listId, userId) => {
     return result.affectedRows > 0;
 };
 
-const getPopularLists = async (limit = 10) => {
+const getPopularLists = async (limit = 6) => {
     const [rows] = await pool.query(`
         SELECT
             l.id_list,
@@ -70,10 +70,12 @@ const getPopularLists = async (limit = 10) => {
         FROM lists l
         JOIN users u ON l.id_user = u.id_user
         LEFT JOIN likes lk ON lk.id_list = l.id_list
+            AND lk.created_at >= NOW() - INTERVAL 7 DAY
         LEFT JOIN list_items li ON li.id_list = l.id_list
         LEFT JOIN games g ON li.id_game = g.id_game
         WHERE l.is_public = TRUE
         GROUP BY l.id_list, l.title, l.description, l.list_type, l.id_user, u.username, u.avatar_url
+        HAVING like_count > 0
         ORDER BY like_count DESC, l.created_at DESC
         LIMIT ?
     `, [limit]);
