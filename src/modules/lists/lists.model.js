@@ -82,7 +82,7 @@ const getPopularLists = async (limit = 10) => {
         ...row,
         like_count: Number(row.like_count),
         game_count: Number(row.game_count),
-        covers: row.cover_urls ? row.cover_urls.split('||').filter(Boolean).slice(0, 4) : [],
+        covers: row.cover_urls ? row.cover_urls.split('||').filter(Boolean).slice(0, 5) : [],
         cover_urls: undefined,
     }));
 };
