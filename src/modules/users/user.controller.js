@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getUserInfo, softDeleteUser, activateUser, updateUserProfile, getUserByUsername, followUser, unfollowUser, checkFollowStatus, searchUsersByUsername, getFollowersModel, getFollowingModel, getUserCount, getUserSuggestions } from "./user.model.js";
+import { getUserInfo, softDeleteUser, activateUser, updateUserProfile, getUserByUsername, followUser, unfollowUser, checkFollowStatus, searchUsersByUsername, getFollowersModel, getFollowingModel, getUserCount, getUserSuggestions, getAllUsersAdmin, banUserAdmin, unbanUserAdmin } from "./user.model.js";
 import { errorHandlerController } from "../../helpers/errorHandlerController.js";
 import validate from "../../utils/validate.js";
 import { emitUserFollowed } from "../../queue/producers/events.producer.js";
@@ -161,6 +161,73 @@ const activateUserController = async (req, res) => {
     }
 };
     
+const getAllUsersAdminController = async (req, res) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+        const query = req.query.q?.trim() || null;
+        const includeBanned = req.query.includeBanned !== 'false';
+
+        const result = await getAllUsersAdmin({ page, limit, query, includeBanned });
+        res.json(result);
+    } catch (error) {
+        return errorHandlerController("Error listando usuarios", 500, res, error);
+    }
+};
+
+const banUserAdminController = async (req, res) => {
+    try {
+        const targetId = parseInt(req.params.id);
+        const { id_user: adminId } = req.user;
+        if (!Number.isFinite(targetId)) {
+            return errorHandlerController("ID invalido", 400, res);
+        }
+
+        const result = await banUserAdmin(targetId, adminId);
+        if (!result.success) {
+            switch (result.reason) {
+                case 'self_ban':
+                    return errorHandlerController("No puedes banearte a ti mismo", 400, res);
+                case 'cannot_ban_admin':
+                    return errorHandlerController("No puedes banear a otro administrador", 403, res);
+                case 'not_found':
+                    return errorHandlerController("Usuario no encontrado", 404, res);
+                case 'already_banned':
+                    return errorHandlerController("Usuario ya esta baneado", 400, res);
+                default:
+                    return errorHandlerController("No se pudo banear", 400, res);
+            }
+        }
+        res.json({ message: "Usuario baneado" });
+    } catch (error) {
+        return errorHandlerController("Error baneando usuario", 500, res, error);
+    }
+};
+
+const unbanUserAdminController = async (req, res) => {
+    try {
+        const targetId = parseInt(req.params.id);
+        if (!Number.isFinite(targetId)) {
+            return errorHandlerController("ID invalido", 400, res);
+        }
+
+        const result = await unbanUserAdmin(targetId);
+        if (!result.success) {
+            switch (result.reason) {
+                case 'not_found':
+                    return errorHandlerController("Usuario no encontrado", 404, res);
+                case 'not_banned':
+                    return errorHandlerController("Usuario no esta baneado", 400, res);
+                default:
+                    return errorHandlerController("No se pudo desbanear", 400, res);
+            }
+        }
+        res.json({ message: "Usuario desbaneado" });
+    } catch (error) {
+        return errorHandlerController("Error desbaneando usuario", 500, res, error);
+    }
+};
+
 export {
     getUserInfoController,
     updateProfileController,
@@ -175,6 +242,9 @@ export {
     getFollowingController,
     getUserCountController,
     getSuggestionsController,
+    getAllUsersAdminController,
+    banUserAdminController,
+    unbanUserAdminController,
 };
 
 async function getUserCountController(req, res) {

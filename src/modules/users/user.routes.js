@@ -14,8 +14,11 @@ import {
     getFollowingController,
     getUserCountController,
     getSuggestionsController,
+    getAllUsersAdminController,
+    banUserAdminController,
+    unbanUserAdminController,
 } from "./user.controller.js";
-import { verifyToken } from "../../middlewares/authMiddleware.js";
+import { verifyToken, verifyAdmin } from "../../middlewares/authMiddleware.js";
 
 const router = Router();
 
@@ -31,6 +34,10 @@ router.put("/softdelete", verifyToken, softDeleteUserController);
 router.put("/active", verifyToken, activateUserController);
 router.post("/follow/:id", verifyToken, followUserController);
 router.delete("/follow/:id", verifyToken, unfollowUserController);
+router.get("/admin/all", verifyToken, verifyAdmin, getAllUsersAdminController);
+router.put("/admin/:id/ban", verifyToken, verifyAdmin, banUserAdminController);
+router.put("/admin/:id/unban", verifyToken, verifyAdmin, unbanUserAdminController);
+
 router.get("/:username", getPublicProfileController);
 
 export default router;
