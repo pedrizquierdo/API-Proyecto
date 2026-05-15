@@ -89,4 +89,94 @@ const getPopularLists = async (limit = 6) => {
     }));
 };
 
-export { createList, getListsByUser, getListDetails, addGameToList, deleteList, getPopularLists };
+const removeListItem = async (listId, itemId, userId) => {
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+
+        const [[item]] = await conn.query(`
+            SELECT li.position
+            FROM list_items li
+            JOIN lists l ON li.id_list = l.id_list
+            WHERE li.id_item = ? AND li.id_list = ? AND l.id_user = ?
+        `, [itemId, listId, userId]);
+
+        if (!item) {
+            await conn.rollback();
+            return { success: false, reason: 'not_found_or_forbidden' };
+        }
+
+        await conn.query('DELETE FROM list_items WHERE id_item = ?', [itemId]);
+
+        await conn.query(`
+            UPDATE list_items
+            SET position = position - 1
+            WHERE id_list = ? AND position > ?
+        `, [listId, item.position]);
+
+        await conn.commit();
+        return { success: true };
+    } catch (err) {
+        await conn.rollback();
+        throw err;
+    } finally {
+        conn.release();
+    }
+};
+
+const reorderListItems = async (listId, userId, orderedItems) => {
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+
+        const [[listRow]] = await conn.query(
+            'SELECT id_user FROM lists WHERE id_list = ?',
+            [listId]
+        );
+        if (!listRow) {
+            await conn.rollback();
+            return { success: false, reason: 'not_found' };
+        }
+        if (listRow.id_user !== userId) {
+            await conn.rollback();
+            return { success: false, reason: 'forbidden' };
+        }
+
+        const [currentItems] = await conn.query(
+            'SELECT id_item FROM list_items WHERE id_list = ?',
+            [listId]
+        );
+        const currentIds = new Set(currentItems.map(r => r.id_item));
+        const incomingIds = new Set(orderedItems.map(o => o.id_item));
+
+        if (currentIds.size !== incomingIds.size ||
+            ![...currentIds].every(id => incomingIds.has(id))) {
+            await conn.rollback();
+            return { success: false, reason: 'mismatch' };
+        }
+
+        const positions = orderedItems.map(o => o.position).sort((a, b) => a - b);
+        const expected = Array.from({ length: positions.length }, (_, i) => i + 1);
+        if (JSON.stringify(positions) !== JSON.stringify(expected)) {
+            await conn.rollback();
+            return { success: false, reason: 'invalid_positions' };
+        }
+
+        for (const { id_item, position } of orderedItems) {
+            await conn.query(
+                'UPDATE list_items SET position = ? WHERE id_item = ? AND id_list = ?',
+                [position, id_item, listId]
+            );
+        }
+
+        await conn.commit();
+        return { success: true };
+    } catch (err) {
+        await conn.rollback();
+        throw err;
+    } finally {
+        conn.release();
+    }
+};
+
+export { createList, getListsByUser, getListDetails, addGameToList, deleteList, getPopularLists, removeListItem, reorderListItems };

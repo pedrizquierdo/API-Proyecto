@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createList, getListsByUser, getListDetails, addGameToList, deleteList, getPopularLists } from './lists.model.js';
+import { createList, getListsByUser, getListDetails, addGameToList, deleteList, getPopularLists, removeListItem, reorderListItems } from './lists.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 import validate from '../../utils/validate.js';
 
@@ -88,4 +88,62 @@ const getPopular = async (req, res) => {
     }
 };
 
-export { create, getUserLists, getOneList, addGame, removeList, getPopular };
+export const validateReorder = validate(z.object({
+    items: z.array(z.object({
+        id_item: z.number().int().positive(),
+        position: z.number().int().positive(),
+    })).min(1).max(1000),
+}));
+
+const removeItem = async (req, res) => {
+    try {
+        const { id_user } = req.user;
+        const listId = parseInt(req.params.listId);
+        const itemId = parseInt(req.params.itemId);
+        if (!Number.isFinite(listId) || !Number.isFinite(itemId)) {
+            return errorHandlerController("IDs invalidos", 400, res);
+        }
+
+        const result = await removeListItem(listId, itemId, id_user);
+        if (!result.success) {
+            if (result.reason === 'not_found_or_forbidden')
+                return errorHandlerController("Item no encontrado o sin permisos", 404, res);
+            return errorHandlerController("No se pudo remover el item", 400, res);
+        }
+        res.json({ message: "Juego removido de la lista" });
+    } catch (error) {
+        return errorHandlerController("Error removiendo item", 500, res, error);
+    }
+};
+
+const reorderItems = async (req, res) => {
+    try {
+        const { id_user } = req.user;
+        const listId = parseInt(req.params.listId);
+        if (!Number.isFinite(listId)) {
+            return errorHandlerController("ID de lista invalido", 400, res);
+        }
+        const { items } = req.body;
+
+        const result = await reorderListItems(listId, id_user, items);
+        if (!result.success) {
+            switch (result.reason) {
+                case 'not_found':
+                    return errorHandlerController("Lista no encontrada", 404, res);
+                case 'forbidden':
+                    return errorHandlerController("No tienes permiso para modificar esta lista", 403, res);
+                case 'mismatch':
+                    return errorHandlerController("Los items no coinciden con la lista", 400, res);
+                case 'invalid_positions':
+                    return errorHandlerController("Las posiciones deben ser 1..N sin huecos ni duplicados", 400, res);
+                default:
+                    return errorHandlerController("No se pudo reordenar", 400, res);
+            }
+        }
+        res.json({ message: "Lista reordenada" });
+    } catch (error) {
+        return errorHandlerController("Error reordenando lista", 500, res, error);
+    }
+};
+
+export { create, getUserLists, getOneList, addGame, removeList, getPopular, removeItem, reorderItems };
