@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createList, getListsByUser, getListDetails, addGameToList, deleteList, getPopularLists, removeListItem, reorderListItems } from './lists.model.js';
+import { createList, getListsByUser, getListDetails, addGameToList, deleteList, getPopularLists, removeListItem, reorderListItems, updateList } from './lists.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 import validate from '../../utils/validate.js';
 
@@ -146,4 +146,40 @@ const reorderItems = async (req, res) => {
     }
 };
 
-export { create, getUserLists, getOneList, addGame, removeList, getPopular, removeItem, reorderItems };
+export const validateUpdateList = validate(z.object({
+    title: z.string().min(1).max(100).optional(),
+    description: z.string().max(500).optional().nullable(),
+    is_public: z.boolean().optional(),
+    list_type: z.enum(['collection', 'ranking', 'wishlist']).optional(),
+}).refine(data => Object.keys(data).length > 0, {
+    message: "Debes enviar al menos un campo a actualizar",
+}));
+
+const updateListController = async (req, res) => {
+    try {
+        const { id_user } = req.user;
+        const listId = parseInt(req.params.listId);
+        if (!Number.isFinite(listId)) {
+            return errorHandlerController("ID invalido", 400, res);
+        }
+
+        const result = await updateList(listId, id_user, req.body);
+        if (!result.success) {
+            switch (result.reason) {
+                case 'not_found':
+                    return errorHandlerController("Lista no encontrada", 404, res);
+                case 'forbidden':
+                    return errorHandlerController("No tienes permiso para editar esta lista", 403, res);
+                case 'no_fields':
+                    return errorHandlerController("Sin campos para actualizar", 400, res);
+                default:
+                    return errorHandlerController("No se pudo actualizar", 400, res);
+            }
+        }
+        res.json({ message: "Lista actualizada", list: result.list });
+    } catch (error) {
+        return errorHandlerController("Error actualizando lista", 500, res, error);
+    }
+};
+
+export { create, getUserLists, getOneList, addGame, removeList, getPopular, removeItem, reorderItems, updateListController };

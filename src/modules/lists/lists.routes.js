@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { create, getUserLists, getOneList, addGame, removeList, validateCreateList, getPopular, removeItem, reorderItems, validateReorder } from './lists.controller.js';
+import { create, getUserLists, getOneList, addGame, removeList, validateCreateList, getPopular, removeItem, reorderItems, validateReorder, updateListController, validateUpdateList } from './lists.controller.js';
 import { verifyToken } from '../../middlewares/authMiddleware.js';
 
 const router = Router();
@@ -18,6 +18,7 @@ router.delete('/:listId/items/:itemId', verifyToken, removeItem);
 
 router.put('/:listId/reorder', verifyToken, validateReorder, reorderItems);
 
+router.put('/:listId', verifyToken, validateUpdateList, updateListController);
 router.delete('/:listId', verifyToken, removeList);
 
 export default router;

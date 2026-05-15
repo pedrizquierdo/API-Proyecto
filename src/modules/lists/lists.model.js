@@ -179,4 +179,31 @@ const reorderListItems = async (listId, userId, orderedItems) => {
     }
 };
 
-export { createList, getListsByUser, getListDetails, addGameToList, deleteList, getPopularLists, removeListItem, reorderListItems };
+const updateList = async (listId, userId, data) => {
+    const allowed = ['title', 'description', 'is_public', 'list_type'];
+    const updates = Object.entries(data).filter(([k, v]) => allowed.includes(k) && v !== undefined);
+    if (updates.length === 0) return { success: false, reason: 'no_fields' };
+
+    const [[list]] = await pool.query(
+        'SELECT id_user FROM lists WHERE id_list = ?',
+        [listId]
+    );
+    if (!list) return { success: false, reason: 'not_found' };
+    if (list.id_user !== userId) return { success: false, reason: 'forbidden' };
+
+    const setClause = updates.map(([k]) => `${k} = ?`).join(', ');
+    const values = updates.map(([, v]) => v);
+
+    await pool.query(
+        `UPDATE lists SET ${setClause} WHERE id_list = ?`,
+        [...values, listId]
+    );
+
+    const [[updated]] = await pool.query(
+        'SELECT * FROM lists WHERE id_list = ?',
+        [listId]
+    );
+    return { success: true, list: updated };
+};
+
+export { createList, getListsByUser, getListDetails, addGameToList, deleteList, getPopularLists, removeListItem, reorderListItems, updateList };
