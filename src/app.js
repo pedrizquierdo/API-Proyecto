@@ -15,6 +15,7 @@ import activityRoutes from "./modules/activity/activity.routes.js";
 import reviewRoutes from "./modules/reviews/reviews.routes.js";
 import listRoutes from "./modules/lists/lists.routes.js";
 import notificationRoutes from "./modules/notifications/notifications.routes.js";
+import adminRoutes from "./modules/admin/admin.routes.js";
 
 dotenv.config();
 
@@ -52,6 +53,7 @@ app.use("/api/activity", activityRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/lists", listRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use((err, req, res, next) => {
   console.error("Server Error:", err);
