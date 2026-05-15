@@ -206,4 +206,43 @@ const getReviewForFeed = async (reviewId) => {
     return row ?? null;
 };
 
-export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getRatingDistribution, getGameRatingStats, getReviewAuthorId, getReviewGameId, getReviewForFeed, getReportedReviewSummary };
+const getPopularReviewsThisWeek = async (limit = 6) => {
+    const [rows] = await pool.query(`
+        SELECT
+            r.id_review,
+            r.content,
+            r.created_at,
+            u.id_user,
+            u.username,
+            u.avatar_url,
+            g.id_game,
+            g.title AS game_title,
+            g.cover_url,
+            g.slug AS game_slug,
+            ug.rating,
+            COUNT(DISTINCT lk.id_like) AS like_count
+        FROM reviews r
+        JOIN users u ON r.id_user = u.id_user
+        JOIN games g ON r.id_game = g.id_game
+        LEFT JOIN user_games ug ON r.id_user = ug.id_user AND r.id_game = ug.id_game
+        LEFT JOIN likes lk ON lk.id_review = r.id_review
+            AND lk.created_at >= NOW() - INTERVAL 7 DAY
+        WHERE r.has_spoilers = FALSE
+          AND r.content IS NOT NULL
+          AND LENGTH(r.content) >= 10
+        GROUP BY r.id_review, r.content, r.created_at,
+                 u.id_user, u.username, u.avatar_url,
+                 g.id_game, g.title, g.cover_url, g.slug, ug.rating
+        HAVING like_count > 0
+        ORDER BY like_count DESC
+        LIMIT ?
+    `, [limit]);
+
+    return rows.map(row => ({
+        ...row,
+        like_count: Number(row.like_count),
+        rating: row.rating !== null ? Number(row.rating) : null,
+    }));
+};
+
+export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getRatingDistribution, getGameRatingStats, getReviewAuthorId, getReviewGameId, getReviewForFeed, getReportedReviewSummary, getPopularReviewsThisWeek };

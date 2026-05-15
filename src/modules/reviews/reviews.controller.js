@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getReviewAuthorId, getReviewGameId, getReviewForFeed, getReportedReviewSummary } from './reviews.model.js';
+import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getReviewAuthorId, getReviewGameId, getReviewForFeed, getReportedReviewSummary, getPopularReviewsThisWeek } from './reviews.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 import validate from '../../utils/validate.js';
 import { upsertActivity } from '../activity/activity.model.js';
@@ -174,7 +174,16 @@ const toggleReviewLike = async (req, res) => {
     }
 };
 
-export { addReview, getGameReviews, getUserReviews, removeReview, reportReview, getReported, approveReview, toggleReviewLike, getRecentReviewsController };
+export { addReview, getGameReviews, getUserReviews, removeReview, reportReview, getReported, approveReview, toggleReviewLike, getRecentReviewsController, getPopularReviewsController };
+
+async function getPopularReviewsController(req, res) {
+    try {
+        const reviews = await getPopularReviewsThisWeek(6);
+        res.json(reviews);
+    } catch (error) {
+        return errorHandlerController('Error obteniendo reseñas populares', 500, res, error);
+    }
+}
 
 async function getRecentReviewsController(req, res) {
     try {
