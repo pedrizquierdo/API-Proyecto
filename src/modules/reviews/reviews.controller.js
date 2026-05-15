@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getReviewAuthorId, getReviewGameId, getReviewForFeed, getReportedReviewSummary, getPopularReviewsThisWeek } from './reviews.model.js';
+import { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getReviewAuthorId, getReviewGameId, getReviewForFeed, getReportedReviewSummary, getPopularReviewsThisWeek, getReviewGameSlug } from './reviews.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
 import validate from '../../utils/validate.js';
 import { upsertActivity } from '../activity/activity.model.js';
@@ -174,7 +174,23 @@ const toggleReviewLike = async (req, res) => {
     }
 };
 
-export { addReview, getGameReviews, getUserReviews, removeReview, reportReview, getReported, approveReview, toggleReviewLike, getRecentReviewsController, getPopularReviewsController };
+const getReviewGameSlugController = async (req, res) => {
+    try {
+        const reviewId = parseInt(req.params.reviewId);
+        if (!Number.isFinite(reviewId)) {
+            return errorHandlerController("ID de review invalido", 400, res);
+        }
+        const row = await getReviewGameSlug(reviewId);
+        if (!row) {
+            return errorHandlerController("Review no encontrada", 404, res);
+        }
+        res.json(row);
+    } catch (error) {
+        return errorHandlerController("Error obteniendo slug del juego", 500, res, error);
+    }
+};
+
+export { addReview, getGameReviews, getUserReviews, removeReview, reportReview, getReported, approveReview, toggleReviewLike, getRecentReviewsController, getPopularReviewsController, getReviewGameSlugController };
 
 async function getPopularReviewsController(req, res) {
     try {

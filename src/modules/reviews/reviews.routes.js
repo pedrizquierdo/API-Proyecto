@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { addReview, getGameReviews, getUserReviews, removeReview, reportReview, getReported, approveReview, toggleReviewLike, validateAddReview, validateReport, getRecentReviewsController, getPopularReviewsController } from './reviews.controller.js';
+import { addReview, getGameReviews, getUserReviews, removeReview, reportReview, getReported, approveReview, toggleReviewLike, validateAddReview, validateReport, getRecentReviewsController, getPopularReviewsController, getReviewGameSlugController } from './reviews.controller.js';
 import { verifyToken, verifyAdmin } from '../../middlewares/authMiddleware.js';
 
 const router = Router();
@@ -15,6 +15,7 @@ router.get('/user/:userId', getUserReviews);
 
 router.delete('/:reviewId', verifyToken, removeReview);
 
+router.get('/:reviewId/game-slug', getReviewGameSlugController);
 router.post('/:reviewId/like', verifyToken, toggleReviewLike);
 router.post('/:reviewId/report', verifyToken, validateReport, reportReview);
 

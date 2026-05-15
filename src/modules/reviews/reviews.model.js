@@ -245,4 +245,19 @@ const getPopularReviewsThisWeek = async (limit = 6) => {
     }));
 };
 
-export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getRatingDistribution, getGameRatingStats, getReviewAuthorId, getReviewGameId, getReviewForFeed, getReportedReviewSummary, getPopularReviewsThisWeek };
+/**
+ * Returns the game slug (and basic metadata) associated with a review.
+ * Safe to expose without authentication: game slugs are public URLs, not private data.
+ * Used as a fallback resolution endpoint for review_like notifications on Android.
+ */
+const getReviewGameSlug = async (reviewId) => {
+    const [[row]] = await pool.query(`
+        SELECT r.id_review, r.id_game, g.slug, g.title as game_title
+        FROM reviews r
+        JOIN games g ON r.id_game = g.id_game
+        WHERE r.id_review = ?
+    `, [reviewId]);
+    return row ?? null;
+};
+
+export { createReview, getReviewsByGame, getReviewsByUser, deleteReview, createReport, getReportedReviewsList, deleteReviewByAdmin, dismissReports, likeReview, unlikeReview, getReviewLikesCount, getRecentReviews, getRatingDistribution, getGameRatingStats, getReviewAuthorId, getReviewGameId, getReviewForFeed, getReportedReviewSummary, getPopularReviewsThisWeek, getReviewGameSlug };
