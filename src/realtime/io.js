@@ -91,7 +91,13 @@ import { getUnreadCount } from '../modules/notifications/notifications.model.js'
 
 const io = new Server({
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      // Clientes nativos (Android, iOS, Postman) no envian Origin
+      if (!origin) return callback(null, true);
+      // Origenes web: validar contra la lista
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`Origin bloqueado por CORS: ${origin}`));
+    },
     credentials: true,
   },
 });
