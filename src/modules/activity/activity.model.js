@@ -81,7 +81,12 @@ const getFriendsFeed = async (userId, limit = 10) => {
         LIMIT ?;
     `;
     const [rows] = await pool.query(query, [userId, userId, limit]);
-    return rows;
+    return rows.map(r => ({
+        ...r,
+        is_favorite: Boolean(r.is_favorite),
+        is_liked:    Boolean(r.is_liked),
+        follows_you: Boolean(r.follows_you),
+    }));
 };
 
 const getUserStreak = async (userId) => {
@@ -183,7 +188,12 @@ const buildFeedItem = async (userId, gameId) => {
         JOIN games g ON ug.id_game = g.id_game
         WHERE ug.id_user = ? AND ug.id_game = ?
     `, [userId, gameId]);
-    return row ?? null;
+    if (!row) return null;
+    return {
+        ...row,
+        is_favorite: Boolean(row.is_favorite),
+        is_liked:    Boolean(row.is_liked),
+    };
 };
 
 const getPublicUserLibrary = async (targetUserId, callerId = null) => {
