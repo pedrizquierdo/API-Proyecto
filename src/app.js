@@ -8,6 +8,8 @@ import rateLimit from "express-rate-limit";
 import searchService from "./services/search.service.js";
 import { attachIo } from "./realtime/io.js";
 import { bootstrapQueues } from "./queue/bootstrap.js";
+import { startNotificationsConsumer } from "./queue/consumers/notifications.consumer.js";
+import { startFeedConsumer } from "./queue/consumers/feed.consumer.js";
 import authRoutes from "./modules/auth/auth.routes.js";
 import userRoutes from "./modules/users/user.routes.js";
 import gameRoutes from "./modules/games/game.routes.js";
@@ -68,6 +70,9 @@ searchService.search('__warmup__').catch(() => {});
 if (process.env.RABBITMQ_URL) {
   try {
     await bootstrapQueues();
+    await startNotificationsConsumer();
+    await startFeedConsumer();
+    console.log('RabbitMQ: consumers de notificaciones y feed activos');
   } catch (err) {
     console.error('Error fatal al inicializar RabbitMQ:', err);
     process.exit(1);
