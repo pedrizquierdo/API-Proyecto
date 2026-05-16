@@ -243,6 +243,22 @@ class IgdbService {
         }
     }
 
+    async getGameBySlug(slug) {
+        try {
+            const data = await this._request(`
+                fields name, slug, cover.url, first_release_date, total_rating_count,
+                       summary, involved_companies.company.name, screenshots.url;
+                where slug = "${slug.replace(/"/g, '\\"')}";
+                limit 1;
+            `);
+            if (!data || data.length === 0) return null;
+            return this._formatGames(data)[0];
+        } catch (error) {
+            console.error('[IGDB] Error buscando por slug:', error.message);
+            return null;
+        }
+    }
+
     async getGameExtras(igdbId) {
         const queryBody = `
             fields genres.name, genres.id,

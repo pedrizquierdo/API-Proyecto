@@ -151,8 +151,14 @@ const getBySlug = async (req, res) => {
     const { slug } = req.params;
     try {
         const game = await getGameBySlug(slug);
-        if (!game) return res.status(404).json({ message: "Juego no encontrado" });
-        res.json(game);
+        if (game) return res.json(game);
+
+        // Local cache miss: try IGDB and warm the cache for future requests.
+        const igdbGame = await igdbService.getGameBySlug(slug);
+        if (!igdbGame) return res.status(404).json({ message: "Juego no encontrado" });
+
+        enqueueGameUpsert(igdbGame).catch(err => console.error('[games.enqueue]', err.message));
+        res.json(igdbGame);
     } catch (error) {
         errorHandlerController("Error obteniendo detalles del juego", 500, res, error);
     }
