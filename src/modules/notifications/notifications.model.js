@@ -20,10 +20,17 @@ pool.query(`
 
 const fetchNotificationRow = async (id) => {
     const [[row]] = await pool.query(`
-        SELECT n.id_notification, n.type, n.id_reference, n.is_read, n.created_at,
-               u.username AS actor_username, u.avatar_url AS actor_avatar
+        SELECT
+            n.id_notification, n.type, n.id_reference, n.is_read, n.created_at,
+            u.username AS actor_username, u.avatar_url AS actor_avatar,
+            CASE
+                WHEN n.type = 'review_like' THEN g.slug
+                ELSE NULL
+            END AS target_slug
         FROM notifications n
         JOIN users u ON n.id_actor = u.id_user
+        LEFT JOIN reviews r ON n.type = 'review_like' AND n.id_reference = r.id_review
+        LEFT JOIN games g ON r.id_game = g.id_game
         WHERE n.id_notification = ?
     `, [id]);
     return row;
