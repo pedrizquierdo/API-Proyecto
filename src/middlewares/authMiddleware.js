@@ -41,4 +41,16 @@ const verifyAdmin = (req, res, next) => {
     }
 };
 
-export {verifyToken, verifyRefreshToken, verifyAdmin};
+const optionalToken = (req, res, next) => {
+    const { token } = req.cookies;
+    if (!token) {
+        req.user = null;
+        return next();
+    }
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        req.user = err ? null : user;
+        next();
+    });
+};
+
+export { verifyToken, verifyRefreshToken, verifyAdmin, optionalToken };

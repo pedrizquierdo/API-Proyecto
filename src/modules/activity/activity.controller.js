@@ -8,6 +8,7 @@ import {
     getUserStreak,
     getUserStats,
     buildFeedItem,
+    getPublicUserLibrary,
 } from './activity.model.js';
 import { getFeedFor, hasFeedItemsFor } from './feed.model.js';
 import { errorHandlerController } from '../../helpers/errorHandlerController.js';
@@ -153,4 +154,19 @@ const removeActivity = async (req, res) => {
     }
 };
 
-export { logActivity, getMyWatchlist, checkStatus, getFeed, getUserLibrary, getStreak, getStats, removeActivity };
+const getUserPublicLibraryController = async (req, res) => {
+    try {
+        const targetId = parseInt(req.params.id);
+        if (isNaN(targetId)) {
+            return res.status(400).json({ message: 'ID de usuario inválido' });
+        }
+
+        const callerId = req.user?.id_user ?? null;
+        const games = await getPublicUserLibrary(targetId, callerId);
+        res.json(games);
+    } catch (error) {
+        return errorHandlerController('Error obteniendo librería del usuario', 500, res, error);
+    }
+};
+
+export { logActivity, getMyWatchlist, checkStatus, getFeed, getUserLibrary, getStreak, getStats, removeActivity, getUserPublicLibraryController };

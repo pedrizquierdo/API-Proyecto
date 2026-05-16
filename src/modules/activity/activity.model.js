@@ -186,6 +186,39 @@ const buildFeedItem = async (userId, gameId) => {
     return row ?? null;
 };
 
+const getPublicUserLibrary = async (targetUserId, callerId = null) => {
+    const isSelf = callerId != null && callerId === targetUserId;
+
+    const query = `
+        SELECT
+            g.id_game,
+            g.title,
+            g.slug,
+            g.cover_url,
+            g.background_url,
+            g.developer,
+            g.release_date,
+            ug.status,
+            ug.rating,
+            ug.is_favorite,
+            ${isSelf ? 'ug.is_liked,' : 'FALSE AS is_liked,'}
+            ug.updated_at AS added_at
+        FROM user_games ug
+        JOIN games g ON ug.id_game = g.id_game
+        JOIN users u ON ug.id_user = u.id_user
+        WHERE ug.id_user = ?
+          AND u.is_visible = TRUE
+        ORDER BY ug.updated_at DESC
+    `;
+
+    const [rows] = await pool.query(query, [targetUserId]);
+    return rows.map(r => ({
+        ...r,
+        is_favorite: Boolean(r.is_favorite),
+        is_liked:    Boolean(r.is_liked),
+    }));
+};
+
 export {
     upsertActivity,
     getActivityByGame,
@@ -196,4 +229,5 @@ export {
     getUserStreak,
     getUserStats,
     buildFeedItem,
+    getPublicUserLibrary,
 };
