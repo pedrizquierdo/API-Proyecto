@@ -54,7 +54,12 @@ const registerController = async (req, res) => {
 
         res.status(201).json({
             message: "Usuario creado y logueado exitosamente",
-            user: { id: id, username: username }
+            user: {
+                id: id,
+                username: username,
+                role: 'user',
+                avatar_url: defaultAvatar
+            }
         });
 
     } catch (error) {
@@ -89,7 +94,12 @@ const loginController = async (req, res) => {
         });
         res.json({
             message: "Inicio de sesión exitoso",
-            user: { id: user.id_user, username: user.username }
+            user: {
+                id: user.id_user,
+                username: user.username,
+                role: user.role,
+                avatar_url: user.avatar_url
+            }
         });
     } catch (error) {
         return errorHandlerController("Error al iniciar sesión", 500, res, error);
