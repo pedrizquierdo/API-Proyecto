@@ -12,6 +12,7 @@ import {
     upsertGameGenres,
     getStatusDistribution,
     getPopularFromCache,
+    createOrUpdateGame,
 } from './game.model.js';
 import { enqueueGameUpsert } from '../../queue/producers/games.producer.js';
 import { publish } from '../../queue/rabbit.js';
@@ -153,12 +154,17 @@ const getBySlug = async (req, res) => {
         const game = await getGameBySlug(slug);
         if (game) return res.json(game);
 
-        // Local cache miss: try IGDB and warm the cache for future requests.
+        // Local cache miss: upsert synchronously so the response always includes
+        // id_game. Clients need it for activity, reviews, extras, and list adds.
         const igdbGame = await igdbService.getGameBySlug(slug);
         if (!igdbGame) return res.status(404).json({ message: "Juego no encontrado" });
 
+        const id_game = await createOrUpdateGame(igdbGame);
+        // Also publish to the queue so the search index and scores stay in sync.
         enqueueGameUpsert(igdbGame).catch(err => console.error('[games.enqueue]', err.message));
-        res.json(igdbGame);
+
+        const fullGame = await getGameById(id_game);
+        res.json(fullGame ?? { ...igdbGame, id_game });
     } catch (error) {
         errorHandlerController("Error obteniendo detalles del juego", 500, res, error);
     }

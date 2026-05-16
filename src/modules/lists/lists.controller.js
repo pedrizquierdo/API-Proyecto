@@ -53,11 +53,15 @@ const addGame = async (req, res) => {
         const { listId } = req.params;
         const { gameId, comment } = req.body;
 
+        if (!gameId || !Number.isInteger(Number(gameId)) || Number(gameId) <= 0) {
+            return errorHandlerController("gameId es requerido y debe ser un entero positivo", 400, res);
+        }
+
         const list = await getListDetails(listId);
         if (!list) return errorHandlerController("Lista no encontrada", 404, res);
         if (list.id_user !== id_user) return errorHandlerController("No tienes permiso para modificar esta lista", 403, res);
 
-        await addGameToList(listId, gameId, comment);
+        await addGameToList(listId, Number(gameId), comment);
         res.json({ message: "Juego agregado a la lista" });
     } catch (error) {
         return errorHandlerController("Error agregando juego", 500, res, error);
