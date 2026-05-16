@@ -89,9 +89,13 @@ const getFeed = async (req, res) => {
         const beforeId = req.query.before ? parseInt(req.query.before) : null;
 
         // Fast path: serve from the pre-computed fan-out table.
+        // Flatten payload into top-level so the response shape matches getFriendsFeed().
         const items = await getFeedFor(userId, limit, beforeId);
         if (items.length > 0) {
-            return res.json(items);
+            return res.json(items.map(({ payload, id_feed_item, ...meta }) => ({
+                ...payload,
+                id_feed_item,
+            })));
         }
 
         // Fallback: new user (no fan-out rows yet) on the first page only.
